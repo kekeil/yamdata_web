@@ -80,8 +80,24 @@ export async function initializeAdmin(secretKey: string) {
       });
     
     if (profileInsertError) throw profileInsertError;
+
+    // Fetch the 'admin' role ID
+    const { data: adminRole, error: adminRoleError } = await supabaseAdmin!.from('roles').select('id').eq('name', 'admin').single();
+
+    if (adminRoleError || !adminRole) {
+      console.error('Error fetching admin role:', adminRoleError);
+      return { success: false, message: "Failed to find admin role." };
+    }
+
+    // Insert into user_roles table
+    const { error: userRoleInsertError } = await supabaseAdmin!.from('user_roles').insert({ user_id: authData.user.id, role_id: adminRole.id });
+
+    if (userRoleInsertError) {
+      console.error('Error inserting into user_roles:', userRoleInsertError);
+      throw userRoleInsertError;
+    }
     
-    // 3. Utiliser la fonction RPC add_admin_role pour attribuer le rôle admin
+    // 3. Utiliser la fonction RPC add_admin_role pour attribuer le rôle admin (EXISTING CALL - RETAINED)
     const { data: addRoleResult, error: addRoleError } = await supabaseAdmin!.rpc(
       'add_admin_role',
       { user_id_param: authData.user.id }
@@ -96,7 +112,7 @@ export async function initializeAdmin(secretKey: string) {
       throw new Error('Échec de l\'attribution du rôle administrateur');
     }
     
-    // 4. Vérifier que le rôle a bien été attribué
+    // 4. Vérifier que le rôle a bien été attribué (EXISTING CALL - RETAINED)
     const { data: verifyAdmin, error: verifyError } = await supabaseAdmin!.rpc(
       'is_user_admin',
       { user_id_param: authData.user.id }
