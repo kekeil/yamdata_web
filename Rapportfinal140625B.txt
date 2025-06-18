@@ -1,0 +1,2637 @@
+MINISTERE DE L’ENSEIGNEMENT SUPERIEUR DE LA RECHERCHE ET DE
+L’INNOVATION
+INSTITUT SUPERIEUR DE TECHNOLOGIES (IST)
+
+INTITULE : INGENIEUR DE TRAVAUX
+DOMAINE : SCIENCE ET TECHNOLOGIE
+MENTION : GENIE INFORMATIQUE
+SPECIALITE : RESEAUX INFORMATIQUE ET TELECOMS
+
+RAPPORT DE STAGE DE FIN DE CYCLE
+THEME : IMPLEMENTATION D’UNE SOLUTION
+BACKUP AVEC URBACKUP : CAS DE GLOBAL DATA
+CONSULTING
+Période de stage : du 24 Juin 2024 au 24 Septembre 2024
+Réalisé par : YAMEOGO HASMIR
+Pour l’obtention du diplôme de Licence en Réseaux et Systèmes Informatiques
+Maitre de stage
+
+Maitre de suivi
+
+M. Romaric ZIDA
+
+M. Abram W. TAPSOBA
+
+Président du Conseil de Décision (PDC)
+
+Enseignant à IST
+
+ANNEE ACADEMIQUE : 2023-2024
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+SOMMAIRE
+DEDICACE .......................................................................................................................... iv
+REMERCIEMENTS ............................................................................................................. v
+SIGLES ET ABREVIATIONS ............................................................................................ vi
+LISTES DES FIGURES ...................................................................................................... vii
+LISTES DES TABLEAUX ................................................................................................ viii
+PRESENTATION DE L’INSTITUT SUPERIEURE DE TECHNOLOGIE ...................... ix
+I.
+
+Historique et mission..................................................................................................... ix
+
+II.
+
+Présentation du campus IST OUAGA 2000 .............................................................. ix
+
+III.
+
+Les campus de l’INSTITUT SUPERIEUR DE TECHNOLOGIE ............................. x
+
+INTRODUCTION GENERALE ........................................................................................... 1
+Chapitre 1 : Présentation de Global Data Consulting ............................................................ 4
+I.
+
+Objectifs ......................................................................................................................... 4
+
+II.
+
+Organisation de l’entreprise........................................................................................ 4
+
+III.
+
+Domaines d’activités .................................................................................................. 5
+
+Chapitre2 : Aspect Généraux Sur Les Backups..................................................................... 7
+I.
+
+Aspects généraux............................................................................................................ 7
+
+II.
+
+Étude comparative de solution de backup .................................................................. 8
+
+III.
+
+Présentation d'UrBackup .......................................................................................... 12
+
+Chapitre 3 : Installation Et Configuration D’UrBackup ...................................................... 21
+I.
+
+Installation .................................................................................................................... 21
+
+II.
+
+Configuration ............................................................................................................ 23
+
+III.
+
+Gestion et restauration des sauvegardes ................................................................... 29
+
+IV.
+
+Sécurisation et optimisation de la solution de backup .............................................. 32
+
+Chapitre 4 : Bilan Du Stage ................................................................................................. 38
+CONCLUSION GENERALE ............................................................................................. 41
+ii
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+BIBLIOGRAPHIE ............................................................................................................. xiv
+WEBOGRAPHIE ................................................................................................................ xv
+ANNEXE ............................................................................................................................ xvi
+TABLES DES MATIERES ................................................................................................ xx
+
+iii
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+
+DEDICACE
+
+Je dédie ce Travail à toute ma famille
+
+iv
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+REMERCIEMENTS
+Nous tenons à adresser nos vifs remerciements à tous ceux qui ont contribué de près ou de
+loin à l’élaboration de ce document plus particulièrement aux personnes suivantes sans qui
+ce travail de mémoire n’aurait pas pu être fait :
+•
+
+Monsieur Abdoul Karim BANDE, Directeur Général de l’Institut Supérieur de
+
+Technologies (IST) campus Ouaga 2000 I & II ;
+•
+
+Le corps professoral de l’IST
+
+•
+
+Monsieur Romaric ZIDA notre maître de stage, pour son encadrement et ses
+précieux conseils ;
+
+•
+
+Monsieur Abram W. TAPSOBA pour son soutien inconditionnel et ses conseils
+avisés qui ont grandement enrichi ce document ;
+
+•
+
+Tout le personnel de Global Data Consulting pour leur disponibilité et leur
+collaboration
+
+•
+
+L’Administration, tout le personnel et les enseignants de l’Institut Supérieur de
+Technologie (IST) pour la formation de qualité que nous avons reçue tout au long
+de ce Parcours ;
+
+•
+
+A mes amis et mes proches pour leur soutien moral et leur encouragement
+
+•
+
+A ma famille pour leur soutien inestimable, leur amour qui ont été une source
+d’inspiration constante.
+
+Nous vous remercions du fond du cœur.
+v
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+SIGLES ET ABREVIATIONS
+AES
+
+Advanced Encryption standard
+
+AGPLV3+
+
+Affero General Public License version 3
+
+BTS
+
+Brevet de Technicien Supérieur
+
+BSD
+
+Berkeley Software Distribution
+
+DTS
+
+Diplôme de technicien Supérieur
+
+FTP
+
+File Transfer Protocol
+
+IST
+
+Institut Supérieur de Technologies
+
+IT
+
+Information Technology
+
+GDC
+
+Global Data Consulting
+
+GPLV2
+
+General Public Licence version 2
+
+GPLV3
+
+General Public Licence version 3
+
+HD
+
+Haute Définition
+
+IP(VOIP)
+
+Voice Over Internet Protocol
+
+MacOS
+
+Macintosh Operating System
+
+RAID
+
+Redundant Array of Independent Disks
+
+SARL
+
+Société à Responsabilité Limitée
+
+SATA
+
+Serial Advanced Technology Attachment
+
+SSD
+
+Solid State Drive
+
+SSL/TLS
+
+Secure Socket Layer/ Transport Layer
+Security
+
+SSH
+
+Secure Shell
+
+TIC
+
+Technologies de l’Information et de la
+Communication
+
+UBS
+
+Umanis Business School
+
+vi
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+LISTES DES FIGURES
+FIGURE 1 : ORGANIGRAMME DE LA SOCIETE GDC ........................................................... 4
+FIGURE 2: EXEMPLES DE SUPPORTS DE SAUVEGARDES ................................................... 11
+FIGURE 3: LES DIFFERENTS TYPES DE SAUVEGARDES..................................................... 14
+FIGURE 4: DEMARRAGE DU SERVICE URBACKUP ........................................................... 22
+FIGURE 5:ACTIVATION DU SERVEUR URBACKUP ........................................................... 23
+FIGURE 6: INTERFACE DU SERVEUR URBACKUP ............................................................ 25
+FIGURE 7: REPERTOIRE DE SAUVEGARDE ..................................................................... 26
+FIGURE 8: TEST DE SAUVEGARDE ............................................................................... 27
+FIGURE 9: TEST DE RESTAURATION REUSSI .................................................................. 32
+FIGURE 10: CHARGE ESTIMEE .................................................................................... 36
+FIGURE 11: ESTIMATION DE COUTS............................................................................. 37
+
+vii
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+
+LISTES DES TABLEAUX
+TABLEAU 1: COMPARATIF DE LOGICIELS DE SAUVEGARDE OPEN SOURCE ET A
+LICENCE ........................................................................................... 9
+
+TABLEAU 2 : ETUDES COMPARATIVE DES METHODES DE SAUVEGARDES .......... 9
+TABLEAU 3: COMPARATIVE DE SOLUTIONS DE SAUVEGARDE OPEN SOURCE .... 12
+
+viii
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+PRESENTATION DE L’INSTITUT SUPERIEURE DE
+TECHNOLOGIE
+I. Historique et mission
+L’Institut Supérieur de Technologies (IST) est une propriété de la société Umanis SA ouvert
+en l’an 2000 avec un capital social en 2024 de 300 000 000 de FCFA. Il a obtenu son
+autorisation sous le numéro N°204/2000/MESSRS/DGSRS/SP du 14 mars 2001. Sa
+direction générale est située au sein du campus de Gounghin.
+L’Institut Supérieur de Technologie (IST), a pour missions de :
+✓
+
+Assurer la formation des cadres compétents, dans les domaines techniques et
+
+professionnels, capable de répondre aux exigences du marché de l’emploi ;
+✓
+
+Assurer la formation continue des travailleurs des entreprises afin d’élever le
+
+niveau de compétitivité de leurs entreprises ;
+✓
+
+Faciliter l’insertion des étudiants en fin de cycle en entreprise.
+
+II. Présentation du campus IST OUAGA 2000
+IST offre des formations de qualité et des diplômes de niveau BAC+2 (BTS), BAC+3
+(Licence), BAC+5 (Master) regroupées en deux départements dont :
+Le département Sciences et Technologies qui regroupent les filières suivantes :
+BTS/DTS : Génie Minier ; Génie Biomédical ; Agroalimentaire ; Génie Civil Option :
+Bâtiment, Travaux Publique ; Réseaux Informatiques et Télécoms ; Génie Electrique Option
+: Electronique et Informatique ; Electrotechnique ; Maintenance Industrielle.
+Licence Professionnelle Ingénieur des Travaux : Génie Minier ; Génie Electrique Option
+Electrotechnique ; Génie Energétique, Energies Renouvelables ; Génie Civil Option :
+Bâtiment, Travaux Publics et Aménagement ; Génie Industriel Options (Génie mécanique et
+Productique ; Maintenance Industrielle) ; Réseaux et Systèmes Informatiques ; Génie
+Biomédical Option Maintenance Biomédicale et Hospitalière ; Analyse Biomédicale ;
+Nutrition Humaine Appliquée ; Qualité et Sécurité Sanitaire des Aliments ; Génie des
+procédés Industriels et Alimentaire.
+
+ix
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+Master : Génie Minier ; Génie Energétique, Energies Renouvelables ; Génie Civil Option :
+Bâtiment, Travaux Publics et Aménagement ; Génie Industriel ; Génie Electrique Option
+Electrotechnique ; Réseaux Informatiques et Multimédia ; Génie Biomédical ;
+Agroalimentaire ; Gestion de l’Environnement Tropical.
+Le département Sciences de Gestion qui regroupent les filières suivantes :
+BTS/DTS : Gestion des Ressources Humaines Transport Logistique ; Communication
+d’Entreprise ; Banque et Micro finance ; Marketing et Gestion Commerciale ; Secrétariat de
+Direction Bureautique ; Gestion des Ressources Humaine.
+Licence Professionnelle : Finance-Comptabilité ; Logistique, Transport et Transit ;
+Communication d’Entreprise ; Assistant de Direction Bilingue ; Marketing Management ;
+Gestion des Ressources Humaines ; Gestion des Projets ; Banque Micro Finance.
+Master : Comptabilité, Contrôle et Audit ; Gestion des Ressources Humaines ; Gestion des
+Projets ; Marketing et Communication d’Entreprise ; Marketing et Stratégie ; Gestion de la
+Micro Entreprise ; Banque Micro Finance ; Banque et Finance Islamique.
+
+III.
+
+Les campus de l’INSTITUT SUPERIEUR DE
+
+TECHNOLOGIE
+IST est présent à Ouagadougou sur les campus de Gounghin, Tampouy, Wayalghin,
+Tanghin, Ouaga 2000 I et II ainsi que le campus en ligne (e-campus). IST est également
+représenté à Tenkodogo (IST-TENKODOGO), à Bobo Dioulasso (IST-BOBO), en Côte
+D’Ivoire (ESIA-CI) ainsi qu’au Cameroun et dans les grands lacs. Classé meilleur institut
+d’enseignement supérieur du Burkina Faso en 2023, l’IST compte à ce jour 37 diplômes
+reconnus par le CAMES.
+Le campus OUAGA 2000 de l’IST
+L’Institut Supérieur de Technologies (IST) Campus Ouaga 2000 a vu le jour en 2018. Avec
+un effectif de deux cent trois (203) étudiants au démarrage, le campus totalise pour le compte
+de l’année académique 2024-2025 environ deux milles (2000) étudiants. Il dispense tout
+comme les autres campus IST des formations dans le domaine de sciences de technologies
+(IST) et de sciences de gestion (UBS). Dirigé par Monsieur Abdoul Karim BANDE,
+consultant-formateur et coach certifié d’ICI Genève, promoteur du cabinet de formation, de
+x
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+recrutement et de coaching « SALOMON CONSEILS SARL », le campus Ouaga 2000 s’est
+fixé pour objectif stratégique de « Transformer structurellement et durablement l’enseignant
+supérieur au Burkina Faso et en Afrique ».
+
+xi
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+INTRODUCTION GENERALE
+Avec l'évolution rapide des technologies numériques, la gestion des réseaux informatiques
+est devenue essentielle pour les entreprises modernes. Le développement des réseaux a
+donné́ naissance à une multitude d'applications dédiées à la sauvegarde des données, un
+enjeu crucial face à la montée des incidents informatiques. Ces incidents peuvent survenir
+de manière inattendue, entrainant non seulement la perte de données, mais aussi un impact
+significatif sur la productivité́ et la réputation des entreprises. En conséquence, il est
+impératif de mettre en place des systèmes de sauvegarde robustes pour contrer ces menaces,
+surtout dans un environnement concurrentiel où chaque minute de « downtime » peut se
+traduire par des pertes financières.
+La question centrale que nous soulevons est : Comment optimiser le système de
+sauvegarde des données de manière efficace et centralisée ? En effet, la perte de données
+peut provoquer des interruptions d'activité́ , nuire à la fidélisation des clients, et révéler une
+insuffisance de préparation face à des informations critiques nécessaires pour une prise de
+décision rapide. Il est donc essentiel d'établir une solution fiable qui garantisse la sécurité́
+des données et la continuité́ des opérations.
+Cette étude vise à explorer des stratégies pour déployer une solution de sauvegarde open
+source, en l'occurrence UrBackup, avec pour objectifs :
+Assurer la sauvegarde du système d'information dans un état opérationnel après un
+incident.
+Protéger les données par le biais d'une sauvegarde sécurisée et surveillée.
+Mettre en place un calendrier de sauvegardes régulières pour prévenir toute perte
+potentielle.
+Nous postulons qu'une solution de sauvegarde centralisée et efficace, telle qu'UrBackup,
+peut non seulement réduire les risques de perte de données, mais également faciliter une
+récupération rapide et efficace des informations, renforçant ainsi la résilience des entreprises
+face aux crises.
+Le choix de ce sujet s'inscrit dans un besoin croissant des entreprises d'avoir des systèmes
+de sauvegarde fiables et flexibles. Des entreprises comme Global Data Consulting (GDC),
+qui se positionnent comme des leaders en solutions informatiques, rencontrent souvent des
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+11
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+clients ayant subi des pertes de données. Par conséquent, l'étude de l'implémentation d'une
+solution de sauvegarde open source est cruciale pour assurer la continuité́ des opérations et
+la confiance des clients.
+Ce rapport se structure en trois sections principales. La première section présente le contexte
+de l'étude, analyse les besoins de l'entreprise, et justifie le choix technologique. La deuxième
+section explore les caractéristiques générales de la solution, incluant une comparaison des
+différentes options disponibles et une présentation approfondie d'UrBackup. Enfin, la
+troisième section se concentre sur l'implémentation d'UrBackup, suivie d'une analyse des
+résultats et des enseignements tirés de l'expérience.
+La première section se décompose en deux chapitres : le premier chapitre expose la structure
+d'accueil et l'analyse des besoins, tandis que le second chapitre traite des aspects généraux
+de la sauvegarde open source avec UrBackup. La deuxième section sera consacrée à
+l'installation et à la configuration de la solution, et la dernière section mettra en lumière les
+résultats obtenus ainsi que les leçons apprises durant cette expérience pratique.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+22
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+
+PREMIERE PARTIE :
+Présentation des structures d’accueils, l'analyse des besoins et aspects
+généraux de la sauvegarde open source avec UrBackup.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+33
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+Chapitre 1 : Présentation de Global Data Consulting
+Global Data Consulting (GDC) est une jeune entreprise double Play créée en
+2023 et est située à OUAGADOUGOU dans le quartier Cissin (Burkina Faso).
+Il fournit un développement logiciel, des consultations en technologie de
+l’information, des gestions de projets, des infrastructures clouds et des solutions
+de télévision HD et de Téléphonie IP (VoIP). Aujourd'hui Global Data
+Consulting SARL est une société en pleine mutation suite à des récentes
+réorganisations.
+
+I. Objectifs
+Global Data Consulting (GDC) est une entreprise leader dans le domaine des
+solutions informatiques intégrées, offrant des services de développement logiciel
+sur mesure, de consultation en technologie de l'information et de gestion de projet
+informatique. Forts d'une équipe dynamique de professionnels talentueux et d'une
+expertise diversifiée, nous sommes déterminés à fournir des solutions innovantes et
+à répondre aux défis technologiques les plus complexes de nos clients.
+
+II. Organisation de l’entreprise
+L’entreprise Global Data Consulting (GDC) est structurée en plusieurs
+domaines d’activités avec une hiérarchie respectée. Son organisation se présente
+comme suit :
+PRESIDENT
+
+DIRECTE
+UR
+
+DU
+
+CONSEIL DE
+DECISIONS
+
+DIRECTE UR
+
+AS SISTANT D U
+
+GENERA L
+
+GENRERAL
+
+RESPO NSABLE
+
+RESPO NSABLE
+
+RESPO NSABLE
+
+RESE AU ET
+
+FINA NCIER
+
+COM MERCIAL
+
+TELE COM
+
+COMPTABLE
+
+COMPTABLE
+
+ASISTANT RESEAU
+
+FOURNISSEUR
+
+DEBITEUR
+
+ET TELECOM 1
+
+ASISTANT RESEAU
+ET TELECOM 2
+
+TECHNICIEN
+COMMERCIAL 1
+
+RESEAU ET
+
+COMMERCIAL 2
+
+TELECOM 1
+
+TECHNICIEN
+RESEAU ET
+TELECOM 2
+
+Figure 1 : Organigramme de la société GDC
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+44
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+III.
+
+Domaines d’activités
+
+Le portefeuille d'activités couvre les services de Télécommunications, Internet
+et services connexes pour la clientèle composée de particuliers, résidentiels,
+institutionnel, administrations publiques et de grandes entreprises. L'entreprise
+dispose à ce jour d’un personnel qualifié, certifié et bénéficie du savoir-faire de
+consultants indépendants experts dans le domaine des TIC.
+Global Data Consulting propose ses services et son expertise dans plusieurs
+domaines liés à l’informatique et aux télécommunications dont :
+✓ Développement Logiciel sur Mesure et Logiciel Métier
+✓ Consultation en Technologie de l'Information
+✓ Gestion de Projet Informatique
+✓ Cyber sécurité avancée
+✓ Infrastructures Cloud
+✓ Centrale d’achat
+✓ La vidéosurveillance
+Par ailleurs, il dispose d’une équipe d’ingénieurs et de techniciens
+expérimentés dans les domaines :
+✓ De la maintenance d’équipements informatiques ;
+✓ Du câblage, de la maintenance et de la configuration de réseau ;
+✓ Du développement de logiciel, de sites Web, hébergement.
+Il travaille également avec un réseau de partenaires de renommée pour fournir
+les meilleurs services à nos clients. On peut citer entre autres : IST Ouaga
+2000 I& II, ENDEAVOUR MINING, ATRACOM, VIDDA, DJAGO-I, GROUPE AI-BF,
+EXTRA IPTV etc.
+AMBITIONS & MISSION
+L'ambition de Global Digital Consultants (GDC) est de devenir un acteur majeur dans le
+domaine des solutions informatiques intégrées à l'échelle mondiale. Voici quelques aspects
+de l'ambition de GDC :
+✓ Leadership technologique
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+55
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+✓ Partenariats stratégiques
+✓ Expansion mondiale
+✓ Excellence opérationnelle
+✓ Impact social et environnemental
+L'ambition de GDC est d'être un leader mondial dans le domaine des solutions informatiques
+intégrées en offrant des services de qualité, en restant à la pointe de l'innovation et en ayant
+un impact positif sur la société et l'environnement.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+66
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+Chapitre2 : Aspect Généraux Sur Les Backups
+Dans un environnement numérique en constante évolution, les entreprises doivent s’assurer
+que leurs données sont non seulement accessibles mais également protégées contre les pertes
+et les corruptions. Ce chapitre vise à fournir une compréhension approfondie des
+technologies actuelles de sauvegarde et de la présentation d’UrBackup comme solution de
+sauvegarde ainsi qu’une analyse des besoins spécifiques de Global. En commençant par une
+revue des solutions existantes, nous examinerons les avantages et les inconvénients de
+chaque approche. Cette évaluation nous permettra de mieux comprendre les défis et
+organisationnels associés à la mise en place d’un tel système chez Global. Ensuite, nous
+analyserons les besoins et contraintes spécifiques de l’entreprise, en tenant compte de son
+environnement technologique, de ses exigences fonctionnelles et non fonctionnelles, et des
+contraintes budgétaires et organisationnelles. Cette analyse servira de base pour la
+proposition et l’implémentation de la solution optimale dans les chapitres suivants.
+
+I. Aspects généraux
+1. Généralités sur les concepts de backup open source
+Une solution de backup open source est un logiciel conçu pour sauvegarder et restaurer des
+données, dont le code source est accessible à tous. Cela permet aux utilisateurs de modifier,
+utiliser et distribuer le logiciel librement. En effet, Urbackup à un système de sauvegarde
+client/serveur qui, grâce à une combinaison de sauvegardes d’image et de fichiers, assure à
+la fois la sécurité des données et un temps de restauration rapide.
+
+2. Définition
+Dans le monde de la technologie, la sauvegarde connue sous le terme de ‘backup’ en anglais,
+est l’opération qui consiste à dupliquer et à mettre en sécurité les données contenues dans un
+système informatique.
+Ce concept repose sur la création de copies supplémentaires des données d’une organisation
+afin de prévenir leur perte ou leur corruption. Les sauvegardes sont généralement stockées
+dans les lieux distincts de l’emplacement des données originales pour protéger contre divers
+types de sinistres, tels que les pannes naturelles, les erreurs humaines, les cyberattaques et
+les catastrophes naturelles. Elle peut être réalisée à l'aide de diverses méthodes, telles que la
+sauvegarde sur des supports physiques (disques durs externes, bandes magnétiques) ou la
+sauvegarde en ligne via des services de stockage cloud (cloud backup). Il est donc essentiel
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+77
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+de prendre des mesures de sauvegarde régulières et fiables pour prévenir la perte de données
+et assurer la résilience de l’entreprise face aux incidents imprévus.
+
+3. Nécessité de solutions de backup
+Les solutions de backup open-source sont des logiciels dont le code source est accessible à
+tous et qui peuvent être utilisés, modifiés et redistribués librement. Cela signifie que les
+utilisateurs de ces solutions ont un contrôle total sur le fonctionnement du logiciel et peuvent
+l'adapter à leurs besoins spécifiques. En revanche, les solutions propriétaires sont des
+logiciels développés par des entreprises qui gardent le code source secret et qui vendent ou
+concèdent sous licence leur utilisation. L'une des principales raisons de l'adoption de
+solutions de backup est la transparence qu'elles offrent. Avec un logiciel open-source, les
+utilisateurs peuvent examiner le code source afin de s'assurer qu'il est sécurisé et qu'il n'inclut
+pas de fonctionnalités malveillantes ou indésirables. Cela permet aux utilisateurs de
+conserver un contrôle total sur leurs données et d'avoir une plus grande confiance dans la
+fiabilité du logiciel.
+
+II. Étude comparative de solution de backup
+1. Etude comparative de logiciels de sauvegarde open source et à licence
+Voici un tableau comparatif des solutions de sauvegarde open source et à licence,
+accompagné d’exemples pour chaque catégorie.
+Critères
+
+Solutions
+
+Open Solution à licence
+
+Source
+Coût
+
+Gratuit (ou coût de Coût de licence (abonnement ou achat)
+support)
+
+Exemples
+
+Fonctionnalités
+
+-Bacula
+
+-Veeam Backup & Replication
+
+-Duplicati
+
+-Acronis Cyber Backup
+
+-Restic
+
+-Commvault
+
+-Sauvegarde
+
+-Sauvegarde complète et différentielle
+
+incrémentielle
+
+-Options avancées de restauration
+
+-Chiffrement
+
+des -Intégration avec des systèmes complexes
+
+données
+-Support de plusieurs
+plateformes
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+88
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+Communauté
+
+-Actif, avec forums et -Support client professionnel
+documentation
+
+-Mise à jour régulières avec support
+
+-Contributions et mises
+à jour fréquentes
+Personnalisation
+
+-Très personnalisable
+-Plugins
+
+et
+
+-Personnalisation limitée
+
+scripts -Fonctionnalités prédéfinies
+
+disponibles
+Facilité d’utilisation
+
+-Interface
+
+souvent -Interfaces conviviales et guidées
+
+moins intuitive
+
+-Formation et assistance disponibles
+
+-Documentation
+parfois incomplète
+Tableau 1: comparatif de logiciels de sauvegarde open source et à licence
+
+2. Etudes comparative des méthodes de sauvegardes
+Dans cette partie, nous allons faire la comparaison des types de sauvegarde en donnant leurs
+avantages et leurs inconvénients.
+Méthode
+
+Description
+
+Avantages
+
+Inconvénients
+
+Scénarios
+D’utilisation
+
+Complète
+Incrémentale
+
+Sauvegarde
+
+Restauration
+
+Temps, espace, Hebdomadaire,
+
+Totale
+
+rapide, simple
+
+ressources
+
+Changements
+
+Rapide, espace Restauration
+
+Depuis
+
+la réduite
+
+dernière
+Différentielle
+
+Changements
+depuis
+
+Miroir
+
+Moins
+
+Quotidienne,
+
+lente,
+
+restauration non
+
+complexité
+
+critique
+
+de Plus
+
+la stockage
+
+mensuelle
+
+lente, Hebdomadaire,
+
+espace
+
+complète
+
+qu’incrémentale croissant
+
+Réplication
+
+Restauration
+
+exacte
+
+facile,
+
+compromis
+
+Espace, pas de Copie
+
+copie versionnage
+
+exacte
+
+nécessaire
+
+exacte
+Synthétique
+
+Fusion
+
+Restauration
+
+Complexité
+
+Restauration
+
+Complète
+
+complète
+
+rapide,
+
+rapide,
+
++incrémentale
+
+économie
+
+efficacité
+
+Tableau 2 : Etudes comparative des méthodes de sauvegardes
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+99
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+Ce tableau comparatif des méthodes de sauvegarde met en évidence les avantages et les
+inconvénients de chaque approche.
+Sauvegarde Complète : Facile à restaurer mais consomme beaucoup de temps et
+d’espace.
+Sauvegarde Incrémentale : Économise de l’espace et du temps de sauvegarde, mais
+la restauration peut être complexe.
+Sauvegarde Différentielle : Compromis entre la complète et l’incrémentale, avec une
+restauration plus rapide que l’incrémentale.
+Sauvegarde Miroir : Rapide pour la restauration mais nécessite un espace équivalent
+et ne protège pas contre les erreurs humaines.
+Sauvegarde Synthétique Complète : Optimise l’espace et le temps de restauration,
+mais plus complexe à gérer.
+
+3. Choix de la solution backup
+Dans le domaine des solutions de sauvegarde open source, plusieurs options se distinguent
+par leurs caractéristiques et leurs performances. Parmi celles-ci, nous allons comparer
+UrBackup, BorgBackup et Duplicati. Après une analyse approfondie, UrBackup a été
+retenue comme la solution la plus adaptée pour une utilisation en entreprise.
+UrBackup est une solution de sauvegarde qui permet de réaliser des sauvegardes de fichiers
+et d'images système sans interrompre les processus en cours. Elle offre des sauvegardes
+complètes et incrémentales, ce qui permet d'économiser de l'espace de stockage et de réduire
+le temps nécessaire pour effectuer les sauvegardes. Compatible avec Windows, Linux et
+MacOS, UrBackup dispose d'une interface web conviviale qui facilite la gestion des
+sauvegardes. Les utilisateurs peuvent facilement surveiller l'état des sauvegardes et restaurer
+des fichiers via cette interface. De plus, UrBackup permet la sauvegarde sur des disques
+locaux ou des serveurs distants, offrant ainsi une flexibilité appréciable pour les entreprises
+qui ont besoin de protéger des données sur plusieurs sites.
+En revanche, BorgBackup, quant à lui, est une solution axée sur la dé-duplication des
+données, ce qui signifie qu'elle ne sauvegarde que les données uniques, réduisant ainsi
+l'espace de stockage nécessaire. Elle propose également des fonctionnalités de compression
+et de chiffrement, garantissant la sécurité des données sauvegardées. Bien que BorgBackup
+soit principalement utilisé sur des systèmes Linux, il est également compatible avec MacOS
+et BSD. Cependant, son interface est principalement en ligne de commande, ce qui peut
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+10
+10
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+nécessiter des compétences techniques pour une utilisation optimale, rendant la solution
+moins accessible pour les utilisateurs moins expérimentés
+Duplicati est une autre option qui fonctionne sur Windows, MacOS et Linux, et qui prend
+en charge divers protocoles de stockage, y compris FTP, SSH et les services cloud. Elle se
+concentre sur la sécurité, offrant un chiffrement fort pour les données sauvegardées.
+Duplicati permet également de créer des sauvegardes incrémentales et compressées,
+optimisant ainsi l'utilisation de l'espace de stockage. Son interface utilisateur est accessible
+et conviviale, ce qui la rend adaptée aux utilisateurs moins techniques. Cependant, elle peut
+être moins performante que d'autres solutions pour des sauvegardes très volumineuses.
+Après avoir examiné ces trois solutions, UrBackup se démarque comme la meilleure option
+pour plusieurs raisons. Sa capacité à effectuer des sauvegardes sans interrompre les
+opérations en cours est cruciale pour les entreprises qui nécessitent une disponibilité
+constante de leurs systèmes. De plus, son interface intuitive facilite la gestion des
+sauvegardes, ce qui est un atout pour les équipes informatiques qui peuvent ne pas avoir de
+personnel dédié à la gestion des sauvegardes. La flexibilité d'UrBackup, qui permet de
+sauvegarder sur des disques locaux ou des serveurs distants, est également un avantage
+significatif pour les entreprises ayant des infrastructures variées. En outre, la possibilité de
+chiffrer les sauvegardes assure la protection des données sensibles, un aspect essentiel dans
+le
+
+contexte
+
+actuel
+
+de
+
+la
+
+cybersécurité.
+
+Figure 2: exemples de supports de sauvegardes
+
+Source : https://portail-informatique-et-securite-du-web.over-blog.com/2020/04/pourquoifaire-des-sauvegardes-informatique-sur-plusieurs-supports-differents.html
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+11
+11
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+En somme, UrBackup combine efficacité, facilité d'utilisation et robustesse, ce qui en fait
+une solution de sauvegarde open source de premier choix. Cette solution permettra à Global
+Data Consulting de renforcer la protection de ses données, optimiser ses processus de
+sauvegarde et de garantir une sécurité efficace des données. L’équipe de l’entreprise étant
+plus à l’aise avec l’utilisation de cette solution ce qui a contribué au choix d’URBACKUP
+comme solution de backup.
+Caractéristique
+Type
+
+Urbackup
+
+BorgBackup
+
+Duplicati
+
+de Complètes
+
+et Incrémentales
+
+Complètes
+
+sauvegarde
+
+incrémenttales
+
+Compatibilité
+
+Windows,
+
+Principalement
+
+Windows,
+
+Linux,
+
+Linux,
+
+Linux,
+
+MacOS
+
+MacOS,
+
+MacOS
+
+et
+
+incrémentales
+
+BSD
+Interface
+
+Web conviviale
+
+Ligne de commande Interface graphique
+accessible
+
+Dé-duplication
+
+Oui
+
+Oui
+
+Non
+
+Chiffrement
+
+Oui
+
+Oui
+
+Oui
+
+Compression
+
+Oui
+
+Oui
+
+Oui
+
+Sauvegarde
+
+sur Oui
+
+Non
+
+Oui
+
+Moyenne
+
+Elévée
+
+Local et distant
+
+Local,
+
+internet
+Facilité
+
+Elevée
+
+d’utilistation
+Support
+
+de Local et distant
+
+stockage
+Licence
+
+distant
+
+et
+
+cloud
+AGPLv3+
+
+GPLv3
+
+GPLv2
+
+Tableau 3: comparative de solutions de sauvegarde open source
+
+III.
+
+Présentation d'UrBackup
+
+La sauvegarde des données est une préoccupation essentielle pour tout utilisateur
+d'ordinateur et toute entreprise. Les pertes de données peuvent avoir des conséquences
+désastreuses, en termes de perte de temps précieux, de frais de récupération coûteux et, dans
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+12
+12
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+certaines situations, même de pertes financières importantes. Il est donc impératif d'avoir
+une solution de sauvegarde fiable et efficace en place. En effet, une solution populaire de
+sauvegarde est UrBackup.
+
+1. Caractéristique
+UrBackup est un logiciel de sauvegarde open-source qui a été principalement développé
+pour être utilisé sur les systèmes d'exploitation Linux, bien qu'il soit également compatible
+avec Windows et macOS. Son interface conviviale et sa facilité de configuration en font un
+choix populaire parmi les utilisateurs individuels ainsi que les petites et moyennes
+entreprises. Une des caractéristiques remarquables d'UrBackup est sa capacité à effectuer
+des sauvegardes à « chaud », ce qui signifie qu'il peut sauvegarder des fichiers alors qu'ils
+sont utilisés et ouverts. Cela permet une sauvegarde plus complète et minimise les risques
+d'avoir des fichiers corrompus ou incomplets. Il existe trois types de sauvegardes principaux
+pour se prémunir d’une perte de données : la sauvegarde complète, la sauvegarde
+incrémentielle et la sauvegarde différentielle. Chaque méthode possède des avantages et des
+inconvénients.
+✓ Les sauvegardes complètes
+Comme son nom l’indique, la sauvegarde complète consiste à créer une copie conforme de
+toutes les données présentes sur un système. Cela inclut le système d’exploitation, les bases
+de données, les applications, les paramètres et les données utilisateurs. Avec son caractère
+exhaustif, la sauvegarde complète nécessite en générale plus de temps, d’espace de stockage
+et de bande passante que d’autre méthode de backup, en particulier si nous avons un grand
+nombre de fichiers à sauvegarder. Cependant, elle offre l’avantage d’une récupération simple
+et rapide, car toutes les données nécessaires sont présentes dans un seul jeu de sauvegarde.
+Elle est souvent utilisée comme point de départ, avec des méthodes de sauvegarde
+incrémentielle pour des mises à jour régulières, économisant ainsi les ressources tout en
+assurant une protection complète des données.
+✓ Les sauvegardes incrémentielles : idéale pour économiser de l’espace
+La sauvegarde incrémentielle (ou sauvegarde incrémentale) consiste à sauvegarder
+uniquement les fichiers et les données qui ont été modifiés depuis la dernière sauvegarde,
+qu’elle soit complète ou incrémentielle. Lors d’une sauvegarde incrémentielle, seuls les
+éléments nouveaux ou modifiés depuis la dernière sauvegarde sont copiés, ce qui permet de
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+13
+13
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+réduire le temps, l’espace de stockage et la bande passante nécessaires par rapport à une
+sauvegarde complète. Ce type de sauvegarde peut être utile, par exemple, pour un architecte
+amené à proposer différentes versions de maquette. Avec la sauvegarde incrémentielle, il est
+certain de disposer de la dernière version du document. Bien que cette méthode soit plus
+efficace en termes de stockage, elle peut néanmoins rendre la récupération plus complexe,
+car il faut avoir accès à toutes les sauvegardes incrémentielles depuis la complète pour
+restaurer l’ensemble des données. Exemple : une sauvegarde complète est réalisée le jour J.
+Le jour J+1, la sauvegarde incrémentielle est réalisée par référence au jour J. Le jour J+2, la
+sauvegarde incrémentielle est réalisée par référence au jour J+1. Et ainsi de suite.
+✓ La sauvegarde différentielle : une restauration simplifiée
+La sauvegarde différentielle consiste à copier tous les fichiers qui ont été modifiés depuis la
+dernière sauvegarde complète. Elle fonctionne sur le même principe que la sauvegarde
+incrémentielle mais ne copie pas uniquement les fichiers modifiés depuis la dernière
+sauvegarde. Concrètement, lorsqu’une sauvegarde différentielle est effectuée, elle
+sauvegarde tous les fichiers qui ont été ajoutés ou modifiés depuis la dernière sauvegarde
+complète, qu’ils aient été inclus ou non dans les sauvegardes précédentes. Cela facilite la
+restauration, car pour récupérer l’état complet des données, il suffit de restaurer la dernière
+sauvegarde complète et la dernière sauvegarde différentielle. La sauvegarde différentielle
+offre un compromis entre la sauvegarde complète, qui peut être gourmande en ressources, et
+la sauvegarde incrémentielle, qui peut nécessiter une gestion plus complexe lors de la
+restauration des données.
+
+Figure 3: Les différents types de sauvegardes
+Source : https://www.smartyou.ch/externalisation-sauvergarde/
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+14
+14
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+Cette flexibilité permet aux utilisateurs de personnaliser leurs sauvegardes en fonction de
+leurs besoins spécifiques. Avec UrBackup, il est également possible de configurer des tâches
+de sauvegarde planifiées. Les utilisateurs peuvent choisir la fréquence à laquelle les
+sauvegardes doivent être effectuées, par exemple quotidiennement, hebdomadairement ou
+mensuellement. Cette fonctionnalité garantit que les données sont régulièrement
+sauvegardées, minimisant ainsi le risque de perte de données récentes en cas de problème
+survenu après la dernière sauvegarde.
+
+2. Fonctionnalités
+UrBackup offre également une sécurité robuste pour protéger les données sauvegardées. Les
+utilisateurs peuvent choisir d'utiliser le cryptage pour protéger leurs sauvegardes sensibles,
+garantissant ainsi que les données ne peuvent pas être accessibles par des tiers non autorisés.
+De plus, UrBackup prend en charge l'authentification utilisateur pour garantir que seules les
+personnes
+
+autorisées
+
+peuvent
+
+accéder
+
+et
+
+restaurer
+
+les
+
+sauvegardes.
+
+En termes de performances, UrBackup est connu pour sa rapidité et son efficacité. Ses
+algorithmes d'optimisation permettent de réduire les temps de sauvegarde et de restauration,
+tout en garantissant la fiabilité des processus. De plus, UrBackup peut être installé et
+configuré rapidement, permettant aux utilisateurs de commencer à sauvegarder leurs
+données un temps records.
+En effet, UrBackup bénéficie d'une communauté active et engagée qui contribue au
+développement et à l'amélioration continue du logiciel. Les utilisateurs peuvent facilement
+trouver des ressources en ligne, telles que des forums de support et des guides d'utilisation
+détaillés, pour les aider à tirer le meilleur parti d'UrBackup. Il se distingue ainsi comme une
+solution de sauvegarde open-source puissante et polyvalente. Ses fonctionnalités avancées,
+sa flexibilité et sa facilité d'utilisation en font un choix idéal tant pour les utilisateurs
+individuels que pour les entreprises.
+
+3. Les politiques de sauvegarde
+La mise en place d’une solution de sauvegarde des données dans certaine entreprise doit
+tenir compte de plusieurs politiques et contraintes. Ces obstacles peuvent être techniques ou
+organisationnels, budgétaires et leur identification est cruciale pour planifier une main en
+œuvre efficace.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+15
+15
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+✓ Analyse des données à sauvegarder
+La première étape de l'analyse des données à sauvegarder consiste à identifier et classifier
+les différents types de données présentes dans l'environnement cible. Il est essentiel de se
+poser quelques questions clés pour mieux comprendre la nature des données à sauvegarder.
+Quels sont les fichiers importants et sensibles ? Quelles sont les applications critiques qui
+nécessitent des sauvegardes régulières ? Existe-t-il des bases de données ou des systèmes de
+fichiers spécifiques qui requièrent une attention particulière ? Une fois que les différents
+types de données ont été identifiés, il est important de les classifier en catégories appropriées.
+Par exemple, les données peuvent être divisées en catégories telles que les fichiers de
+documents, les fichiers multimédias, les bases de données, les journaux système, etc. Cette
+classification permet de mieux comprendre les exigences de sauvegarde spécifiques à chaque
+type de données et facilite la planification ultérieure des stratégies de sauvegarde.
+Ensuite, il est important d'évaluer la criticité et la valeur des données à sauvegarder.
+Certaines données peuvent être essentielles pour le bon fonctionnement de l'organisation,
+tandis que d'autres peuvent être moins cruciales. Une évaluation appropriée de la criticité
+des données aidera à déterminer la fréquence et le niveau de protection nécessaires pour
+chaque type de données. Par exemple, les données critiques peuvent nécessiter des
+sauvegardes quotidiennes, tandis que les données moins importantes peuvent être
+sauvegardées une fois par semaine. Il est également important d'examiner les besoins
+spécifiques en matière de rétention des sauvegardes. Certaines données peuvent nécessiter
+une conservation à long terme en raison des exigences légales ou réglementaires, tandis que
+d'autres peuvent être supprimées après un certain laps de temps. La définition claire des
+politiques de rétention des sauvegardes est essentielle pour éviter une accumulation
+excessive de données et garantir que les bonnes informations sont conservées.
+Enfin, il est important de revoir régulièrement l'analyse des données à sauvegarder. Les
+besoins et les contraintes d'un environnement peuvent évoluer avec le temps, il est donc
+essentiel de réévaluer régulièrement les données à sauvegarder pour s'assurer que les
+politiques de sauvegarde sont toujours appropriées. Cela peut être fait, par exemple, en
+effectuant une revue annuelle ou semestrielle des données et des stratégies de sauvegarde.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+16
+16
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+✓ Evaluation des ressources disponibles pour la sauvegarde
+La première étape de l'évaluation des ressources disponibles consiste à évaluer les serveurs
+nécessaires pour héberger la solution de sauvegarde. Il est important de déterminer le nombre
+et les spécifications des serveurs dont nous avons besoin en fonction de l'ampleur de nos
+opérations de sauvegarde. Il faut prendre en compte des facteurs tels que le volume de
+données à sauvegarder, la fréquence des sauvegardes et les exigences en termes de
+disponibilité et de redondance des données. Il est essentiel d'évaluer leur capacité de
+stockage. Les disques durs utilisés pour la sauvegarde doivent être suffisamment grands pour
+accueillir toutes les données à sauvegarder, tout en tenant compte de la croissance future. Il
+est recommandé de prévoir une capacité de stockage supplémentaire pour gérer les pics de
+demande ou les périodes de forte activité. Les disques durs utilisés pour la sauvegarde
+peuvent être internes ou externes, selon les besoins. Enfin, il est important d'évaluer les
+ressources budgétaires disponibles pour mettre en place une solution de sauvegarde avec
+UrBackup. Bien que les logiciels open source sont généralement gratuits, il peut y avoir des
+coûts associés à la mise en place de l'infrastructure matérielle nécessaire, ainsi qu'à la
+formation et à la maintenance continue de la solution. Il est important de prendre en compte
+les serveurs, la capacité de stockage, l'infrastructure réseau, les compétences techniques et
+le budget disponible.
+✓ Identification des exigences de récupération des données
+Pour commencer, il est essentiel de déterminer la fréquence de sauvegarde des données. Cela
+dépendra des besoins spécifiques de l'organisation ou de l'utilisateur. Certaines entreprises
+peuvent nécessiter des sauvegardes fréquentes toutes les heures, tous les jours ou toutes les
+semaines pour assurer la protection continue de leurs informations critiques. D'autres
+pourront opter pour des sauvegardes moins fréquentes, selon leur volume de données et leur
+tolérance au risque. Il est important d'évaluer les besoins de récupération pour déterminer la
+fréquence optimale des sauvegardes. Certaines organisations souhaitent conserver leurs
+sauvegardes pendant une période spécifique dans le cadre de leurs politiques de conservation
+des données. Cela peut inclure des exigences légales, réglementaires ou internes. Il est donc
+nécessaire de prendre en compte ces exigences lors de la configuration de la solution
+UrBackup pour garantir que les sauvegardes sont conservées pendant la durée requise.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+17
+17
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+La méthode de sauvegarde utilisée joue également un rôle dans l'identification des exigences
+de récupération des données. Les différents types de données à sauvegarder peuvent
+nécessiter des approches différentes. Par exemple, les données textuelles telles que les
+documents et les fichiers de configuration peuvent être sauvegardées de manière plus simple
+par rapport aux bases de données volumineuses ou aux systèmes d'exploitation complets.
+✓ Prise en compte des contraintes de budget
+Lorsqu'il s'agit de mettre en place une solution de backup avec UrBackup, l'un des coûts
+principaux à prendre en compte est celui de l'infrastructure matérielle nécessaire. Cela inclut
+les serveurs de stockage où les données seront sauvegardées, ainsi que les équipements
+réseau tels que les routeurs et les switchs. Il est important de déterminer les besoins
+spécifiques en matière de capacité de stockage et de performances requises pour choisir le
+matériel adapté et éviter des dépenses inutiles. Il peut être nécessaire d'investir dans d'autres
+outils logiciels pour supporter la mise en œuvre et la gestion de la solution. Par exemple, des
+applications complémentaires pour la surveillance système, la gestion des utilisateurs et des
+autorisations peuvent être nécessaires. Il est donc important de bien évaluer les besoins en
+matière de logiciels et de sélectionner ceux qui sont essentiels à la solution de backup choisie.
+La formation du personnel est un autre aspect à prendre en compte. Il est essentiel que les
+équipes informatiques soient familiarisées avec le fonctionnement et l'administration
+d'UrBackup, afin de pouvoir optimiser son utilisation et résoudre les problèmes éventuels. Il
+peut donc être nécessaire d'investir dans des formations ou des cours en ligne pour assurer
+que le personnel dispose des compétences nécessaires pour gérer efficacement la solution.
+Une autre contrainte budgétaire importante concerne la maintenance de la solution de
+backup. Bien qu'UrBackup offre une solution évolutive et flexible, il est nécessaire de
+prévoir un budget pour les mises à jour régulières, les correctifs de sécurité et les ajustements
+du système au fil du temps. De plus, il peut être nécessaire de réserver une partie du budget
+pour faire appel à des experts externes, si besoin, pour assister dans la gestion et la
+maintenance de la solution. Enfin, il est important de prendre en compte les coûts récurrents
+liés à la mise en place et à la gestion d'une solution de backup open source. Cela peut inclure
+les coûts liés à l'alimentation électrique des serveurs de stockage, au refroidissement des
+équipements, à la bande passante réseau et éventuellement aux licences de logiciels tiers
+nécessaires à l'intégration avec d'autres systèmes.
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+18
+18
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+En somme, nous avons examiné les enjeux cruciaux liés à la sauvegarde des données, un
+élément fondamental pour la continuité des activités des entreprises modernes. La
+sauvegarde des données est devenue indispensable pour prévenir les pertes dues à des
+sinistres, des erreurs humaines ou des cyberattaques. En effet, sans une stratégie de
+sauvegarde efficace, les entreprises s'exposent à des risques significatifs qui peuvent
+compromettre leur fonctionnement et leur réputation. Les solutions de sauvegarde,
+notamment celles basées sur des technologies open source comme UrBackup, offrent une
+flexibilité et une transparence qui permettent aux organisations de personnaliser leurs
+processus de sauvegarde selon leurs besoins spécifiques.
+Nous avons également analysé différentes méthodes de sauvegarde, telles que les
+sauvegardes complètes, incrémentales, différentielles, miroirs et synthétiques. Chacune de
+ces méthodes présente des avantages et des inconvénients, et le choix de la méthode
+appropriée dépend des exigences spécifiques de l'entreprise en matière de temps, d'espace
+de stockage et de rapidité de restauration. UrBackup a été identifiée comme une solution
+particulièrement adaptée grâce à sa capacité à effectuer des sauvegardes sans interrompre les
+opérations en cours, tout en offrant des fonctionnalités de sécurité robustes, telles que le
+chiffrement des données.
+Enfin, l'évaluation des données à sauvegarder est une étape qui nécessite une identification
+précise des fichiers critiques et une classification adéquate des données. Cela permet de
+définir des stratégies de sauvegarde qui répondent aux besoins spécifiques de l'entreprise
+tout en garantissant la sécurité et l'intégrité des informations. En somme, une stratégie de
+sauvegarde bien conçue et mise en œuvre est essentielle pour assurer la résilience des
+entreprises face aux défis contemporains liés à la gestion des données.
+Dans le chapitre suivant, nous aborderons l'installation et la configuration de la solution de
+sauvegarde UrBackup, en détaillant les étapes nécessaires pour mettre en place cette solution
+efficace et adaptée aux besoins des utilisateurs.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+19
+19
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+
+DEUXIEME PARTIE :
+Installation et Configuration d'UrBackup
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+20
+20
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+Chapitre 3 : Installation Et Configuration D’UrBackup
+Dans ce chapitre, nous allons implémenter une solution de sauvegarde des données adaptée
+aux besoins de GDC. Nous aborderons également la configuration de cette solution, en
+tenant compte des exigences spécifiques de l’entreprise en matière de sécurité, de
+performance, de compatibilité et de coûts. Enfin, nous terminerons par un bilan de stage.
+
+I. Installation
+1. Téléchargement et Installation d’UrBackup sur Windows
+Pour télécharger UrBackup, il convient de se rendre sur le site officiel d'UrBackup
+(https://www.urbackup.org) et de rechercher la section de téléchargement. Sur cette page,
+nous trouverons les différentes versions d'UrBackup disponibles pour les différentes
+plateformes. Sélectionnons uniquement la version stable la plus récente compatible avec
+notre système d'exploitation. Une fois que nous avons choisi la version appropriée, cliquons
+sur le lien de téléchargement correspondant pour commencer le téléchargement du fichier
+d'installation. La taille du fichier dépendra de la version choisie, mais en général, cela ne
+prend pas beaucoup de temps.
+Pour installer UrBackup sur un système d'exploitation Windows, suivons les étapes
+suivantes
+✓ Une fois le fichier d'installation téléchargé, double-cliquons sur le fichier exécutable
+(.exe) pour lancer l'assistant d'installation.
+✓ Suivons les instructions à l'écran fournies par l'assistant. Nous devrons peut-être
+accepter les termes de la licence et choisir l'emplacement d'installation.
+✓ Pendant le processus d'installation, nous aurons la possibilité de choisir les éléments
+à installer, tels que le serveur UrBackup et le client UrBackup. Assurons-nous de
+sélectionner les éléments requis en fonction de notre configuration.
+✓ Une fois l'installation terminée, l'assistant nous proposera de lancer le programme
+immédiatement ou de le faire ultérieurement. Choisissons l'option appropriée selon
+nos préférences.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+21
+21
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+2. Installation d'UrBackup sur Linux
+Pour installer UrBackup sur un système d'exploitation Linux, il existe différentes méthodes
+en fonction de la distribution que nous utilisons :
+✓ Nous allons ouvrir un terminal sur notre système.
+✓ Mettre à jour les informations du système avec la commande suivante : sudo apt
+update.
+✓ Installer les dépôts nécessaires en exécutant la commande suivante : sudo apt install
+software-properties-common.
+✓ Ajouter le dépôt d'UrBackup avec la commande suivante : sudo add-apt-repository
+ppa:urbackup/ppa.
+✓ Mettre à jour les informations des dépôts avec la commande suivante : sudo apt
+update.
+✓ Installer UrBackup avec la commande suivante : sudo apt install urbackup-server
+urbackup-client.
+✓ Démarrer le service Urbackupsrv avec la commande : sudo systemctl start
+urbackupsrv
+
+Figure 4: Démarrage du service Urbackup
+Source : Yameogo Hasmir
+
+✓ Activer le service pour qu’il démarre automatiquement au boot avec la commande :
+sudo systemctl enable urbackupsrv
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+22
+22
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+
+Figure 5:Activation du serveur Urbackup
+Source : Yameogo Hasmir
+
+✓ Afficher l’état du service Urbackup avec la commande suivante : sudo systemctl
+status urbackupsrv
+
+3. Installation d'UrBackup sur MacOS
+Pour installer UrBackup sur un système d'exploitation MacOS, suivons les étapes suivantes
+:
+✓ Téléchargez le fichier d'installation d'UrBackup pour MacOS à partir du site officiel
+(https://www.urbackup.org).
+✓ Une fois le fichier téléchargé, double-cliquons dessus pour l'ouvrir.
+✓ Faisons glisser l'icône d'UrBackup dans le dossier "Applications" pour l'installer.
+✓ Après l'installation, nous pourrons trouver UrBackup dans le dossier "Applications".
+✓ Ouvrons UrBackup en double-cliquant sur l'icône ou en utilisant Spotlight pour
+rechercher "UrBackup".
+Dans notre cas, nous allons installer notre serveur sur Ubuntu et notre client sur Windows
+pour l’installation et la configuration.
+
+II. Configuration
+1. Configuration initiale après l'installation
+Après avoir installé UrBackup sur notre système d'exploitation, il est nécessaire de procéder
+à une configuration initiale pour préparer le système à effectuer des sauvegardes et des
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+23
+23
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+restaurations. Les étapes spécifiques peuvent varier en fonction de nos besoins, mais en
+général, nous devrons effectuer les actions suivantes :
+➢ Configurer les emplacements de stockage des sauvegardes : spécifions où nous
+souhaitons stocker les sauvegardes sur notre système. Cela peut être un disque dur
+interne ou externe, une partition réseau ou un service de stockage en nuage.
+➢ Configurer les programmes de sauvegarde : définissons quels fichiers ou répertoires
+que nous souhaitons sauvegarder avec UrBackup. Nous pouvons également
+configurer les fréquences de sauvegarde et les rétentions souhaitées.
+➢ Configurer les notifications : configurons les notifications pour recevoir des alertes
+en cas d'erreurs ou de succès lors des processus de sauvegarde ou de restauration.
+Il est recommandé de consulter la documentation officielle d'UrBackup pour obtenir des
+instructions précises sur la configuration initiale, car les étapes peuvent varier légèrement en
+fonction de la version d'UrBackup que nous avons installée.
+Une fois que toutes ces étapes de téléchargement et d'installation sont correctement
+terminées, UrBackup sera prêt à être utilisé pour effectuer des sauvegardes et des
+restaurations. La prochaine étape consistera à configurer plus en détail notre solution de
+sauvegarde open-source avec UrBackup afin de répondre à nos besoins spécifiques.
+
+2. Configuration du serveur et du client UrBackup
+Serveur
+Une fois l'installation terminée, nous allons chercher notre adresse ip en tapant la commande
+« ifconfig » sur le terminal. Ensuite nous pourrons accéder à UrBackup via l'interface web
+en
+
+ouvrant
+
+notre
+
+navigateur
+
+et
+
+en
+
+nous
+
+rendant
+
+à
+
+l'adresse
+
+suivante
+
+:
+
+http://192.168.11.118:55414.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+24
+24
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+
+Figure 6: Interface du serveur Urbackup
+Source : Yameogo Hasmir
+
+Les premiers paramètres à définir sont :
+-
+
+La langue et le fuseau horaire,
+
+-
+
+Le mot de passe administrateur pour l’interface,
+
+-
+
+Le répertoire de stockage des sauvegardes.
+Client
+
+Après avoir configurer le serveur, on passera à l’installation et à la configuration du client
+Windows la machine à sauvegarder.
+➢ Téléchargement
+- Dans l’interface web du serveur UrBackup : nous allons ajouter un client,
+Nom client : Windows
+- Sur la page d’accueil de l’interface web, un lien est proposé pour télécharger
+automatiquement le client Windows, avec les paramètres de connexion au serveur déjà
+préconfigurés,
+- Téléchargeons l’installateur du client, puis exécutons-le,
+- Suivons les étapes de l’assistant d’installation.
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+25
+25
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+Généralement, le client est installé comme service Windows. Il est automatiquement
+configuré pour se connecter au serveur UrBackup d’où il a été téléchargé.
+➢ Configuration
+Une fois le client installé, il s’enregistre automatiquement sur le serveur. Nous pouvons
+vérifier depuis l’interface Web du serveur que le client est bien connecté et reconnu. Depuis
+l’interface du client nous pouvons :
+-
+
+Définir les répertoires à sauvegarder (si non forcés depuis le serveur) ;
+
+Figure 7: Répertoire de sauvegarde
+Source : Yameogo Hasmir
+
+-
+
+Spécifier les horaires ou jours préférés pour les sauvegardes,
+
+-
+
+Configurer la limitation de bande passante,
+
+-
+
+Activer ou non certaines options comme les sauvegardes d’image disque,
+
+-
+
+Test de connexion et sauvegarde.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+26
+26
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+
+Figure 8: Test de sauvegarde
+Source : Yameogo Hasmir
+
+3. Paramétrage des créneaux de sauvegarde
+Le paramétrage des créneaux de sauvegarde est essentiel pour la planification efficace de
+sauvegardes régulières. Nous allons explorer en profondeur les différentes options et
+paramètres disponibles pour configurer les créneaux de sauvegarde dans UrBackup, afin de
+garantir une protection optimale des données tout en répondant aux besoins spécifiques de
+l'environnement. Lors de la configuration des créneaux de sauvegarde dans UrBackup, il est
+important de trouver un équilibre entre la fréquence des sauvegardes et l'utilisation des
+ressources systèmes. En fonction des besoins de récupération des données, différents
+créneaux peuvent être définis pour effectuer des sauvegardes fréquentes ou programmées à
+intervalles réguliers.
+La première étape consiste :
+Une fois dans cette section, nous pouvons commencer par définir les jours et les heures
+auxquels les sauvegardes doivent être réalisées. UrBackup offre la possibilité de programmer
+des sauvegardes quotidiennes, hebdomadaires ou mensuelles, en fonction de nos besoins.
+Nous pouvons définir les heures exactes et les périodes de temps pendant lesquelles les
+sauvegardes se dérouleront. Par exemple, nous pourrions vouloir effectuer une sauvegarde
+quotidienne à 2 heures du matin, lorsque les systèmes sont moins sollicités. Nous pouvons
+choisir entre différents types de sauvegarde tels que la sauvegarde complète ou
+incrémentielle. La sauvegarde complète implique la sauvegarde de toutes les données, tandis
+que la sauvegarde incrémentielle ne sauvegarde que les fichiers qui ont changé depuis la
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+27
+27
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+dernière sauvegarde. Il est également possible de définir des options de compression pour
+réduire la taille des fichiers de sauvegarde. La compression peut être utile pour réduire
+l'espace du disque utilisé par les sauvegardes et faciliter leur transfert. Cependant, il est
+important de prendre en compte l'impact potentiel sur les performances système lors de la
+compression et de déterminer si elle est vraiment nécessaire dans notre environnement.
+UrBackup nous permet également de configurer les paramètres de rétention des sauvegardes.
+Nous pouvons choisir combien de temps conserver les données de sauvegarde avant qu'elles
+ne soient supprimées automatiquement. Cela peut être utile pour gérer l'espace de stockage
+disponible et garantir que seules les sauvegardes pertinentes sont conservées. Parfois, il est
+possible que plusieurs sauvegardes soient programmées en même temps sur différents
+systèmes. UrBackup offre des options pour gérer ces conflits en ajustant automatiquement
+les horaires ou en demandant à l'utilisateur de résoudre manuellement les problèmes de
+planification. Une fois que nous avons configuré les paramètres de sauvegarde, il est
+important de tester ces créneaux pour nous assurer qu'ils fonctionnent correctement.
+UrBackup propose une fonction de vérification qui nous permet de simuler une sauvegarde
+sans réellement écrire de données sur le disque. Cela peut être utile pour détecter
+d'éventuelles erreurs de configuration ou problèmes avant de lancer les sauvegardes réelles.
+
+4. Définition des règles de rétention des sauvegardes
+Nous allons définir en détail les règles de rétention des sauvegardes dans UrBackup, en
+mettant l'accent sur les options disponibles et les considérations importantes à prendre en
+compte lors de cette étape clé de l'installation et de la configuration. Dans UrBackup, les
+règles de rétention des sauvegardes déterminent la manière dont les sauvegardes existantes
+seront conservées, supprimées ou remplacées. Il est essentiel de définir ces règles afin de
+garantir une gestion efficace de l'espace de stockage et de répondre aux exigences
+spécifiques en matière de rétention des données.
+Une des règles de rétention les plus simples à mettre en place est la règle "Supprime le plus
+ancien fichier". Cette règle permet de supprimer automatiquement les fichiers de sauvegarde
+plus anciens que le nombre spécifié. Par exemple, si nous souhaitons conserver seulement
+les 30 dernières sauvegardes, il suffit de définir une règle de rétention de "30".
+Une autre option fréquente est la règle "Conserve les dernières X sauvegardes". Cette règle
+permet de garder un nombre spécifique de dernières sauvegardes disponibles, tout en
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+28
+28
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+remplaçant les plus anciennes lorsque le quota est atteint. Par exemple, si nous souhaitons
+conserver les 10 dernières sauvegardes, il suffit de définir une règle de rétention de "10".
+UrBackup offre également la possibilité de définir des règles de rétention basées sur le
+temps, telles que "Conserve les sauvegardes pendant X jours" ou "Conserve les sauvegardes
+jusqu'à la date spécifiée". Ces options permettent de gérer les sauvegardes de manière
+temporelle, en supprimant automatiquement celles qui dépassent la période spécifiée. Par
+exemple, si nous souhaitons conserver les sauvegardes pendant 30 jours, il suffit de définir
+une règle de rétention de "30 jours".
+Il est également possible de définir des règles de rétention pour des sauvegardes séparées en
+fonction du type de sauvegarde. Par exemple, UrBackup permet de définir des règles de
+rétention différentes pour les sauvegardes complètes et les sauvegardes incrémentielles. Cela
+permet de conserver davantage de sauvegardes complètes tout en limitant le nombre de
+sauvegardes incrémentielles. Lors de la définition des règles de rétention, il est important de
+prendre en compte certains facteurs. Tout d'abord, il faut tenir compte de la quantité d'espace
+de stockage disponible et de la fréquence des sauvegardes planifiées. Il est important de
+trouver un équilibre entre la quantité de sauvegardes conservées et l'espace de stockage
+disponible afin d'éviter tout problème de saturation.
+
+III.
+
+Gestion et restauration des sauvegardes
+
+1. Surveillance de l'état et de l'intégrité des sauvegardes
+L’étape importante dans la surveillance de l'état et de l'intégrité des sauvegardes consiste à
+mettre en place des mécanismes de suivi et d'alerte. Cela peut être réalisé en utilisant des
+outils de gestion des sauvegardes qui fournissent des rapports détaillés sur l'état des
+sauvegardes, y compris les détails sur les succès, les échecs et les avertissements. Ces outils
+permettent de connaître rapidement l'état actuel des sauvegardes et d'identifier tout problème
+potentiel. Il est également essentiel de mettre en place des vérifications régulières des
+sauvegardes pour s'assurer de leur intégrité. Cela peut inclure des vérifications basées sur
+des techniques telles que la somme de contrôle (checksum) ou la vérification de la cohérence
+des fichiers de sauvegarde. Les vérifications régulières permettent d'identifier rapidement
+tout problème éventuel, tel que la corruption des données, et de prendre les mesures
+appropriées pour le résoudre. La mise en œuvre de la réplication des sauvegardes est une
+autre mesure importante pour garantir la sécurité et l'intégrité des sauvegardes. La réplication
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+29
+29
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+consiste à créer une copie secondaire des sauvegardes, généralement stockée dans un
+emplacement distinct de l'emplacement principal. Cela garantit qu'en cas de défaillance ou
+de perte des sauvegardes principales, les données comprimées dans la sauvegarde secondaire
+peuvent être utilisées pour la restauration. La réplication régulière des sauvegardes contribue
+également à assurer leur intégrité en offrant une autre couche de protection contre la
+corruption des données.
+
+2. Processus de restauration des données
+Le processus de restauration des données est une étape cruciale dans la gestion des
+sauvegardes. Il implique la récupération des données précédemment sauvegardées et leur
+restauration sur le système d'origine ou sur un autre système. Cette procédure est essentielle
+en cas de perte de données due à des pannes matérielles, des effacements accidentels ou des
+attaques malveillantes.
+➢ Évaluation des besoins de restauration : Avant de commencer le processus de
+restauration, il est important d'évaluer les besoins spécifiques de la restauration des
+données. Cela implique de déterminer quels fichiers ou quelles données doivent être
+restaurés, quelle version de sauvegarde doit être utilisée et où la restauration doit
+être effectuée.
+➢ Accès à la sauvegarde : Pour pouvoir restaurer les données, il est nécessaire
+d'accéder à la sauvegarde correspondante. Dans le cas d'UrBackup, cela peut être
+fait en accédant à l'interface web d'UrBackup. Assurons-nous d'avoir les identifiants
+nécessaires pour accéder à la sauvegarde.
+➢ Sélection des options de restauration : Une fois connecté à l'interface web
+d'UrBackup, nous devrons sélectionner les options de restauration appropriées. Cela
+peut inclure le choix des fichiers ou des dossiers à restaurer, la sélection de la version
+de sauvegarde souhaitée et l'indication du répertoire de destination pour la
+restauration.
+➢ Validation de l'installation des composants nécessaires : Avant de poursuivre la
+restauration, il est essentiel de s'assurer que tous les composants nécessaires sont
+installés sur le système de destination. Cela peut inclure le client UrBackup, les
+dépendances requises, ainsi que tout autre logiciel ou application nécessaire à la
+restauration correcte des données.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+30
+30
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+➢ Lancement de la restauration : Une fois que toutes les options sont configurées et
+que tous les composants nécessaires sont installés, vous pouvez lancer le processus
+de restauration. Cela peut être fait en cliquant sur le bouton de restauration approprié
+dans l'interface web d'UrBackup.
+➢ Suivi de l'avancement de la restauration : Pendant le processus de restauration, il
+est important de suivre l'avancement de la restauration pour s'assurer qu'elle se
+déroule correctement. L'interface web d'UrBackup fournit généralement des
+notifications et des mises à jour en temps réel sur l'état de la restauration.
+➢ Vérification des données restaurées : Une fois le processus de restauration terminé,
+il est crucial de vérifier l'intégrité et l'exactitude des données restaurées. Assuronsnous que tous les fichiers ou données nécessaires ont été correctement restaurés et
+qu'ils sont accessibles dans le répertoire de destination prévu.
+➢ Test de la restauration : Pour garantir une restauration fiable, il est recommandé de
+tester le processus de restauration sur des données fictives ou non critiques avant
+d'effectuer une restauration réelle. Cela permet de s'assurer que toutes les étapes du
+processus fonctionnent comme prévu et qu'il n'y a pas de problème potentiel lors de
+la restauration des données réelles.
+
+3. Vérification de l’efficacité des restaurations
+Il est également essentiel d'adopter les bonnes pratiques suivantes pour assurer une
+restauration efficace et fiable :
+Effectuer des tests réguliers de la restauration pour s'assurer que le processus
+fonctionne correctement.
+Documenter les processus de restauration et les conserver à jour avec les éventuelles
+modifications apportées à l'infrastructure ou aux logiciels utilisés.
+Planifier et exécuter régulièrement des sauvegardes pour s'assurer que les données
+sont toujours disponibles en cas de besoin de restauration.
+Choisir la version de sauvegarde appropriée pour s'assurer que les données
+restaurées sont à jour.
+Stocker les sauvegardes dans un emplacement sécurisé pour éviter la perte ou la
+corruption des données.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+31
+31
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+Le processus de restauration des données est donc essentiel dans la gestion des sauvegardes.
+En suivant les étapes appropriées et en respectant les bonnes pratiques recommandées, il est
+possible de restaurer les données de manière efficace et fiable dans le cadre d'une solution
+de sauvegarde avec UrBackup.
+
+Figure 9: Test de restauration réussi
+Source : Yameogo Hasmir
+
+IV.
+
+Sécurisation et optimisation de la solution de backup
+
+1. Mise en place de mesures de sécurité pour protéger les données
+sauvegardées
+Tout d'abord, il est essentiel de garantir la confidentialité des données sauvegardées. Pour ce
+faire, il est recommandé de chiffrer les données avant leur stockage. UrBackup offre la
+possibilité de mettre en place un chiffrement des données à l'aide de l'algorithme AES
+(Advanced Encryption Standard). Cela permet de rendre les données illisibles pour
+quiconque ne possédant pas la clé de déchiffrement appropriée. Pour une sécurité accrue, il
+est conseillé d'utiliser des clés de chiffrement suffisamment fortes et de les stocker de
+manière sécurisée. En plus du chiffrement, il est également important de mettre en place des
+mesures d'authentification et d'autorisation pour contrôler l'accès aux données sauvegardées.
+UrBackup propose un système de gestion des utilisateurs qui permet de créer des comptes
+individuels avec des privilèges spécifiques. Il est recommandé de définir des rôles et des
+permissions appropriés pour chaque utilisateur afin de limiter l'accès aux seules personnes
+autorisées. De plus, il est conseillé d'utiliser des mots de passe forts et de les changer
+régulièrement pour renforcer la sécurité.
+L'intégrité des données sauvegardées est une autre préoccupation importante. Il est essentiel
+de s'assurer que les données n'ont pas été altérées ou corrompues au cours du processus de
+sauvegarde ou de restauration. UrBackup intègre des mécanismes de vérification de
+l'intégrité des fichiers, tels que les sommes de contrôle (checksums), qui permettent de
+détecter toute modification indésirable. Il est recommandé de vérifier régulièrement
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+32
+32
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+l'intégrité des données sauvegardées afin d'identifier et de corriger rapidement toute
+anomalie.
+En ce qui concerne la disponibilité des données sauvegardées, il est important de mettre en
+place des mesures pour éviter les pertes de données dues à des pannes matérielles, des
+défaillances système ou des catastrophes naturelles. Une bonne pratique consiste à établir
+une stratégie de sauvegarde redondante, qui implique de conserver des copies externes et de
+les stocker hors site. Cela permet de garantir que même en cas de sinistre local, les données
+peuvent être récupérées à partir d'une autre source. UrBackup offre la possibilité de
+configurer des sauvegardes délocalisées sur des serveurs distants.
+Enfin, il est conseillé de mettre en place des procédures de suivi et de surveillance pour
+détecter rapidement les éventuels problèmes ou incidents de sécurité. Cela inclut la
+journalisation des activités liées au backup, l'analyse régulière des journaux à la recherche
+d'anomalies ou d'accès non autorisés, ainsi que la mise en place de notifications en cas
+d'événements suspectés. Les mesures de suivi et de surveillance permettent de maintenir une
+vigilance constante et de réagir rapidement en cas de menace potentielle.
+
+2. Optimisation des performances et de l'efficacité des sauvegardes
+Pour optimiser les performances des sauvegardes, le choix du matériel est crucial. Il est
+recommandé d'utiliser des disques durs rapides, comme des SSD ou des disques SATA, et
+d'envisager une configuration RAID (Redundant Array of Independent Disks) pour
+améliorer la vitesse d'accès et assurer une tolérance aux pannes.
+La configuration logicielle joue également un rôle clé. UrBackup permet d'augmenter la
+taille de bloc pour les fichiers volumineux, de désactiver la vérification des fichiers non
+modifiés et d'activer le multi-threading pour exécuter plusieurs sauvegardes simultanément.
+L'adoption de sauvegardes incrémentales ou différentielles peut considérablement accélérer
+le processus en ne sauvegardant que les fichiers modifiés depuis la dernière sauvegarde
+complète. De plus, la fonctionnalité de copie à froid (cold snapshot) permet de sauvegarder
+les données lorsque le système est arrêté, garantissant ainsi la cohérence des données. Pour
+améliorer l'efficacité, il est essentiel de mettre en place une politique de rétention appropriée,
+afin de conserver uniquement les sauvegardes nécessaires et de libérer de l'espace de
+stockage. La compression des données peut également réduire la taille des sauvegardes, bien
+qu'elle puisse légèrement affecter les performances.
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+33
+33
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+3. Surveillance et gestion de l'espace de stockage pour les sauvegardes
+UrBackup propose plusieurs outils pour gérer cet espace. Tout d'abord, la configuration des
+options de rétention des sauvegardes permet de déterminer combien de temps les
+sauvegardes doivent être conservées. En ajustant ces paramètres, nous pouvons réduire
+l'espace occupé par les anciennes sauvegardes. La fonctionnalité de "nettoyage automatique"
+d'UrBackup supprime les sauvegardes obsolètes, libérant ainsi de l'espace de manière
+proactive. De plus, l'activation de la compression des fichiers de sauvegarde réduit leur taille,
+maximisant ainsi l'efficacité de l'espace utilisé.
+Il est également essentiel de surveiller l'espace de stockage disponible. UrBackup fournit des
+rapports sur l'utilisation de l'espace, permettant aux administrateurs de prendre des mesures
+appropriées si nécessaire. La mise en place d'alertes lorsque l'espace atteint un seuil critique
+aide à réagir rapidement, que ce soit en ajoutant des disques ou en supprimant des
+sauvegardes anciennes. Dans certains cas, il peut être nécessaire d'archiver les anciennes
+sauvegardes vers un autre emplacement, comme un disque externe ou le cloud, afin de libérer
+de l'espace tout en les rendant accessibles.
+
+4. Mise à jour et maintenance de la solution UrBackup
+Pour mettre à jour la solution UrBackup, nous devons d'abord vérifier la version actuelle de
+notre installation. Nous pouvons le faire en accédant à l'interface d'administration de
+UrBackup et en consultant les informations sur la version de l'interface. Ensuite, nous devons
+nous rendre sur le site officiel de UrBackup pour vérifier s'il existe une version plus récente
+disponible. Une fois que nous avons identifié qu'une mise à jour est nécessaire, nous devons
+procéder à l'arrêt temporaire des services UrBackup en cours d'exécution afin de garantir la
+cohérence des données. Cela peut être réalisé en utilisant les commandes appropriées pour
+arrêter le serveur UrBackup, les clients et les services associés.
+Avant d'effectuer la mise à jour, il est recommandé de faire une sauvegarde complète de nos
+données et de notre configuration actuelle. Cela permettra de préserver nos données en cas
+d'éventuel problème lors de la mise à jour. Nous pouvons copier les fichiers importants sur
+un support externe ou utiliser la fonctionnalité de sauvegarde intégrée de UrBackup pour
+créer une sauvegarde complète des données. Une fois que nous avons fait une sauvegarde,
+nous pouvons procéder à la mise à jour. Pour cela, nous devons télécharger la dernière
+version de UrBackup depuis le site officiel et suivre les instructions spécifiques pour
+l'installation ou la mise à jour. Les procédures d'installation peuvent varier en fonction du
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+34
+34
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+système d'exploitation utilisé (par exemple, Windows, Linux) et de la méthode d'installation
+(par exemple, installation manuelle ou via un gestionnaire de packages).
+Après avoir installé la nouvelle version de UrBackup, nous devons redémarrer les services
+UrBackup pour que les changements prennent effet. Une fois que tous les services sont de
+nouveau opérationnels, nous pouvons vérifier l'interface d'administration pour nous assurer
+que la mise à jour a été effectuée avec succès.
+En plus de la mise à jour régulière, il est également important de mettre en place des
+procédures de maintenance régulières pour assurer le bon fonctionnement de votre solution
+UrBackup. Cela comprend la vérification régulière de l'intégrité des sauvegardes, la
+surveillance des journaux d'événements, la gestion des espaces de stockage, la planification
+des opérations de maintenance et la mise en place de mesures de sécurité.
+Une des pratiques recommandées est de vérifier régulièrement l'intégrité des sauvegardes
+effectuées par UrBackup pour s'assurer qu'elles sont toujours accessibles et exploitables.
+Nous pouvons le faire en effectuant des restaurations régulières sur des systèmes de test pour
+nous assurer que les données sont correctement récupérées.
+La surveillance des journaux d'événements est également essentielle pour détecter
+d'éventuels problèmes ou erreurs qui pourraient survenir au cours des processus de
+sauvegarde. Cela peut inclure la vérification des journaux devant être tenus à jour en termes
+de processus de sauvegarde réussis ou échoués, ainsi que des alertes sur les éventuels
+problèmes de connexion ou d'espace de stockage.
+La gestion de l'espace de stockage est un autre aspect important dans la maintenance d'une
+solution de backup. Il est nécessaire de surveiller régulièrement l'espace disponible pour
+s'assurer qu'il est suffisant pour accueillir les sauvegardes futures. En cas de compression ou
+de suppression de sauvegardes anciennes, mesurez soigneusement la politique de
+conservation des données pour respecter les réglementations en vigueur et répondre aux
+besoins de l'entreprise.
+La planification des opérations de maintenance régulières est également importante pour
+assurer la performance continue de notre solution UrBackup. Cela peut inclure des tâches
+telles que la défragmentation du stockage, l'optimisation des bases de données, la vérification
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+35
+35
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+des mises à jour de sécurité du système d'exploitation sous-jacent, ainsi que la mise à jour et
+la validation des paramètres de configuration de UrBackup.
+Enfin, la mise en place de mesures de sécurité est primordiale pour protéger vos données
+sauvegardées. Cela peut comprendre des actions telles que l'utilisation de connexions
+sécurisées (par exemple, via SSL/TLS), la mise en place de mots de passe forts pour l'accès
+à l'interface d'administration, l'utilisation de pare-feu pour contrôler les connexions entrantes
+et sortantes, ainsi que la sauvegarde des données sur des emplacements sécurisés.
+
+V. Estimation de la charge de travail et des coûts
+1. Charge de travail estimée
+La mise en place d'une solution de sauvegarde avec UrBackup au sein de Global Data
+Consulting nécessite une planification minutieuse des ressources humaines, matérielles et
+financières. L'estimation suivante a pour objectif de donner une vue d’ensemble des efforts
+nécessaires pour mener à bien ce projet.
+
+Figure 10: Charge estimée
+Source : Yameogo Hasmir
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+36
+36
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+
+2. Estimation des coûts
+
+Total estimé :19400000CFA
+Figure 11: Estimation de coûts
+Source: Yameogo Hasmir
+
+Ce chapitre a permis de démontrer concrètement la faisabilité et l'efficacité de la solution de
+sauvegarde UrBackup dans un contexte professionnel tel que celui de Global Data
+Consulting. À travers les différentes étapes d’installation sur les systèmes Windows et
+Linux, la configuration des serveurs et des clients, ainsi que la mise en place des politiques
+de sauvegarde et de restauration, nous avons pu observer les nombreux avantages de cette
+solution open source : simplicité de déploiement, flexibilité, compatibilité multiplateformes, et fonctionnalités avancées de sécurité. La configuration fine des créneaux de
+sauvegarde, des règles de rétention, et des options de chiffrement a permis d’adapter
+UrBackup aux exigences spécifiques de l’entreprise, tant en termes de sécurité que de
+performance. Par ailleurs, l’intégration réussie des procédures de restauration et de
+supervision des sauvegardes garantit une résilience optimale face aux incidents pouvant
+entraîner une perte de données.
+En somme, la mise en œuvre d’UrBackup constitue une réponse efficace aux besoins
+identifiés dans les chapitres précédents. Elle permet à GDC de sécuriser ses données
+critiques tout en maîtrisant ses coûts. Cette expérience pratique constitue également une
+opportunité d’apprentissage riche, ayant permis de renforcer à la fois les compétences
+techniques et la rigueur méthodologique nécessaires à la gestion de projets informatiques.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+37
+37
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+Chapitre 4 : Bilan Du Stage
+Dans ce chapitre, nous allons faire le point sur l’étude et l'implémentation du logiciel de
+sauvegarde Urbackup. Nous analyserons les résultats obtenus, les difficultés rencontrées,
+ainsi que les aspects professionnels et personnels de cette expérience. Ce bilan nous
+permettra de tirer des enseignements précieux et de formuler des critiques et suggestions
+pour améliorer les futurs travaux.
+
+Bilan du stage
+1. Plan professionnel
+Durant toute la période de d’étude, nous avons travaillé sur différents aspects techniques de
+mise en place d’un backup, sous la supervision de notre directeur de stage. Voici les
+principaux travaux effectués :
+•
+
+Acquisition de compétences techniques : nous avons acquis des
+compétences techniques quant à la mise en place d’une solution de
+sauvegarde open-source avec Urbackup notamment l’installation et la
+configuration
+
+•
+
+Application pratique des connaissances : Ce stage nous a permis de
+mettre en pratique nos connaissances théoriques acquises durant notre
+formation en réseau et système Informatique à IST.
+
+•
+
+Collaboration en équipe : Ce stage a également contribué à
+l’amélioration de notre esprit d’équipe notamment la capacité à
+collaborer efficacement surtout à travailler ensemble pour atteindre un
+objectif commun.
+
+2. Plan personnel
+Cette période de mise en place a été très enrichissante sur le plan personnel. Voici les
+principaux aspects :
+•
+
+Aspect intellectuel : Nous avons été amenés à faire beaucoup de recherches. Cela
+nous a permis d'acquérir de nombreuses connaissances et de découvrir de nouveaux
+outils de travail. J'ai dû apprendre de nouveau logiciel de backup, m'adapter à
+l'utilisation de l’implémentation que je ne connaissais pas, ce qui a été un défi mais
+aussi une opportunité d'élargir mes compétences.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+38
+38
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+•
+
+Aspect émotionnel : Travailler sur un thème de cette envergure a demandé beaucoup
+de discipline, de rigueur et de travail. Nous avons appris à nous auto-motiver, à
+repousser nos limites et à ne pas nous laisser dépasser par le découragement et les
+critiques. Cette expérience nous a permis de nous raffermir et de croire en nos
+capacités.
+
+3. Difficultés rencontrées
+Comme dans tout étude, nous avons rencontré plusieurs difficultés :
+•
+
+Le nombre de nouveau logiciel à apprendre : L'apprentissage de nouveau logiciel
+n'a pas été de tout repos et a ajouté une couche de complexité supplémentaire.
+
+•
+
+Charge de travail : Nous étions face à un monde de travail dont nous devions nous
+adapter. En effet l’adaptations au style de travail de l’entreprise n’était pas tout à fait
+facile. Le domaine des réseaux et systèmes informatique est un domaine très évolutif
+car chaque jour de nouvelles technologies, méthodes et innovations voient le jour.
+
+•
+
+4. Suggestions
+Amélioration continue : Il est essentiel de continuer à perfectionner les
+fonctionnalités existantes tout en intégrant des innovations technologiques pour
+garantir une compétitivité durable et répondre aux attentes des utilisateurs.
+
+•
+
+Forum de la communauté : il est essentiel de participer aux discussions sur le forum
+officiel d’UrBackup. Les utilisateurs partagent souvent des astuces, des
+configurations optimisées et des solutions aux problèmes courants
+
+L'installation et la configuration d'UrBackup représentent des étapes cruciales pour établir
+une solution de sauvegarde à la fois fiable et efficace. Ce chapitre a fourni une vue
+d'ensemble complète des différentes phases, allant du téléchargement et de l'installation à la
+configuration des clients et à la mise en place des créneaux de sauvegarde.
+Les instructions détaillées pour l'installation sur les systèmes Linux, Windows et macOS
+permettent aux utilisateurs de choisir la méthode la plus adaptée à leur environnement. La
+configuration initiale, comprenant la création d'un compte administrateur et la définition des
+chemins de sauvegarde, est essentielle pour garantir à la fois la sécurité et une gestion
+optimale des données. En outre, le chapitre a mis en lumière la gestion des sauvegardes, en
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+39
+39
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+abordant des aspects tels que la surveillance de leur statut et le processus de restauration des
+données. Ces fonctionnalités sont fondamentales pour assurer que les informations sensibles
+sont non seulement protégées, mais également facilement récupérables en cas de besoin.
+Enfin, l'importance de la sécurisation et de l'optimisation de la solution de sauvegarde a été
+soulignée. La mise en œuvre de mesures de sécurité, telles que l'utilisation de connexions
+SSL et la gestion rigoureuse des droits d'accès, ainsi que l'adoption de pratiques visant à
+optimiser les performances, sont indispensables pour maintenir l'intégrité et l'efficacité des
+sauvegardes de Global Data Consulting.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+40
+40
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+CONCLUSION GENERALE
+Dans un contexte où les innovations technologiques redéfinissent les pratiques de gestion,
+notre stage au sein de l’entreprise Global Data Consulting (GDC) a marqué une étape
+significative dans la protection de donnée. Pendant trois mois, nous avons travaillé sur la
+mise en place d’une solution de sauvegarde open-source avec Urbackup. Ce thème ambitieux
+avait pour objectif de fournir une solution de sauvegarde qui garantit la sécurité et la rapidité
+des sauvegardes de données critiques. Ce rapport de stage a permis d'explorer en profondeur
+les enjeux et les pratiques liés aux solutions de sauvegarde, en mettant particulièrement
+l'accent sur UrBackup. À travers une analyse structurée, nous avons d'abord présenté le
+contexte et l'organisation de l'entreprise d'accueil, Global Data Consulting, et son rôle
+essentiel dans le secteur des solutions informatiques.
+La deuxième partie du rapport a détaillé l'installation et la configuration d'UrBackup,
+fournissant des instructions claires et des meilleures pratiques pour garantir une sauvegarde
+fiable et efficace. Les étapes d'installation sur différents systèmes d'exploitation, ainsi que la
+configuration des clients et des serveurs, ont été soigneusement expliquées, soulignant
+l'importance d'une mise en place rigoureuse.
+Enfin, le bilan de mon expérience de stage a révélé non seulement des compétences
+techniques et professionnelles acquises, mais aussi des leçons précieuses sur la gestion des
+projets et le travail d'équipe. Les défis rencontrés ont renforcé ma capacité à résoudre des
+problèmes de manière proactive.
+En somme, ce stage a été une expérience enrichissante qui m'a permis de mieux comprendre
+l'importance des solutions de sauvegarde dans un monde numérique en constante évolution.
+Les recommandations formulées visent à améliorer la mise en œuvre de ces solutions, tout
+en soulignant la nécessité de rester à jour avec les technologies émergentes. Ce parcours
+m'ouvre de nouvelles perspectives professionnelles et m'encourage à poursuivre mon
+engagement dans le domaine de la gestion des données.
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+41
+41
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+BIBLIOGRAPHIE (consultation du 6 juillet au 5 mai 2025)
+Aspects généraux Kirk, P. (2020). Data Backup and Recovery: Best Practices.
+O'Reilly
+
+Media
+
+and/9781492080907/
+
+https://www.oreilly.com/library/view/data-backup,
+
+https://www.oreilly.com/library/view/data-backup-
+
+and/9781492080907/
+Étude comparative de solution de backup Smith, J. (2019). Open Source Backup
+
+Solutions:
+
+A
+
+Comprehensive
+
+Guide.
+
+Springer
+
+https://link.springer.com/book/10.1007/978-1-4842-4737-7]
+https://link.springer.com/book/10.1007/978-1-4842-4737-7
+Présentation d'UrBackup comme solution de backup open-source Jones, R. (2021).
+The Importance of Data Backup in Cybersecurity Wiley https://www.wiley.com/enus/The+Importance+of+Data+Backup+in+Cybersecurity-p9781119747271](https://www.wiley.com/enus/The+Importance+of+Data+Backup+in+Cybersecurity-p-9781119747271)
+
+Miller, A. (2022). Understanding Data Loss: Prevention and Recovery Strategies.
+Packt
+
+Publishing.
+
+https://www.packtpub.com/product/understanding-data-
+
+loss/9781803233294](https://www.packtpub.com/product/understanding-dataloss/9781803233294)
+National Institute of Standards and Technology. (2021). Guide to Data Backup and
+Recovery
+
+Planning.
+
+NIST
+
+Special
+
+Publication
+
+800-34.
+
+https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.80034r1.pdf](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.80034r1.pdf)
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+xiv
+xiv
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+WEBOGRAPHIE (consultation du 6 juillet au 5 mai 2025)
+Aspects généraux : https://www.urbackup.org
+Étude
+
+comparative
+
+de
+
+solution
+
+de
+
+backup :
+
+https://www.bacula.org
+
+,
+
+https://www.bacula.org, https://www.duplicati.com, https://www.borgbackup.org.
+Présentation
+
+d'UrBackup
+
+comme
+
+solution
+
+de
+
+backup
+
+open-source :
+
+https://csrc.nist.gov/publications/detail/sp/800-34/rev-
+
+1/final](https://csrc.nist.gov/publications/detail/sp/800-34/rev-1/final)
+Tutoriel
+
+d'installation
+
+d'UrBackup
+
+sur
+
+Linux
+
+(Ubuntu)
+
+:
+
+d'UrBackup
+
+sur
+
+Windows
+
+:
+
+https://help.ubuntu.com/community/UrBackup
+Tutoriel
+
+de
+
+configuration
+
+https://www.ubackup.com/blog/urbackup-windows-setup-guide
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+xv
+xv
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+ANNEXE
+
+Figure 12: Mise à jour des paquets
+Source : Hasmir YAMEOGO
+
+Figure 13 : Installation des outils pour télécharger, sécuriser, et gérer des dépôts logiciels
+Source : Hasmir YAMEOGO
+
+Figure 14 : Ajout de logiciel supplémentaire
+Source : Hasmir YAMEOGO
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+xvi
+xvi
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+
+Figure 13:Vérification du service Urbackup server
+Source : Hasmir YAMEOGO
+
+Figure 14: Démarrage automatique Urbackup server
+Source : Hasmir YAMEOGO
+
+Figure 15: Démarrage de Urbackup
+Source : Hasmir YAMEOGO
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+xvii
+xvii
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+
+Figure 16: Mise à jour la liste des paquets
+Source : Hasmir YAMEOGO
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+xviii
+xviii
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+
+Figure 17:Paramétrage de sécurité
+Source: Hasmir yameogo
+
+Figure 18: Planification de sauvegarde
+Source: Hasmir yameogo
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+xix
+xix
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+
+TABLES DES MATIERES
+DEDICACE .......................................................................................................................... iv
+REMERCIEMENTS ............................................................................................................. v
+SIGLES ET ABREVIATIONS ............................................................................................ vi
+LISTES DES FIGURES ...................................................................................................... vii
+LISTES DES TABLEAUX ................................................................................................ viii
+PRESENTATION DE L’INSTITUT SUPERIEURE DE TECHNOLOGIE ...................... ix
+INTRODUCTION GENERALE ........................................................................................... 1
+Chapitre 1 : Présentation de Global Data Consulting ............................................................ 4
+1.1.
+
+Objectifs .................................................................................................................. 4
+
+1.2.
+
+Organisation de l’entreprise .................................................................................... 4
+
+1.3.
+
+Domaines d’activités............................................................................................... 5
+
+Chapitre2 : Aspect Généraux Sur Les Backups..................................................................... 7
+I.
+
+Aspects généraux ........................................................................................................ 7
+
+1.
+
+Généralités sur les concepts de backup open source .................................................. 7
+2.
+
+Définition ................................................................................................................ 7
+
+3.
+
+Nécessité de solutions de backup ............................................................................ 8
+
+II.
+
+Étude comparative de solution de backup .............................................................. 8
+
+1.
+
+Etude comparative de logiciels de sauvegarde open source et à licence .................... 8
+
+2.
+
+Etudes comparative des méthodes de sauvegardes..................................................... 9
+
+3.
+
+Choix de la solution backup ..................................................................................... 10
+
+III.
+
+Présentation d'UrBackup....................................................................................... 12
+
+1.
+
+Caractéristique .......................................................................................................... 13
+
+2.
+
+Fonctionnalités ......................................................................................................... 15
+
+3.
+
+Les politiques de sauvegarde .................................................................................... 15
+
+Chapitre 3 : Installation Et Configuration D’UrBackup ...................................................... 21
+I.
+
+Installation ................................................................................................................ 21
+1.
+
+Téléchargement et Installation d’UrBackup sur Windows ................................... 21
+
+2.
+
+Installation d'UrBackup sur Linux ........................................................................ 22
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+xx
+xx
+
+Implémentation d’une solution backup avec Urbackup : cas de Global
+Data Consulting
+3.
+II.
+
+Installation d'UrBackup sur MacOS ..................................................................... 23
+Configuration ........................................................................................................ 23
+
+1.
+
+Configuration initiale après l'installation .............................................................. 23
+
+2.
+
+Configuration du serveur et du client UrBackup .................................................. 24
+
+3.
+
+Paramétrage des créneaux de sauvegarde ............................................................. 27
+
+4.
+
+Définition des règles de rétention des sauvegardes .............................................. 28
+
+III.
+
+Gestion et restauration des sauvegardes ............................................................... 29
+
+1.
+
+Surveillance de l'état et de l'intégrité des sauvegardes ......................................... 29
+
+2.
+
+Processus de restauration des données .................................................................. 30
+
+3.
+
+Vérification de l’efficacité des restaurations ........................................................ 31
+
+IV.
+
+Sécurisation et optimisation de la solution de backup .......................................... 32
+
+1.
+
+Mise en place de mesures de sécurité pour protéger les données sauvegardées ... 32
+
+2.
+
+Optimisation des performances et de l'efficacité des sauvegardes ....................... 33
+
+3.
+
+Surveillance et gestion de l'espace de stockage pour les sauvegardes .................. 34
+
+4.
+
+Mise à jour et maintenance de la solution UrBackup ........................................... 34
+
+Chapitre 4 : Bilan Du Stage ................................................................................................. 38
+Bilan du stage................................................................................................................... 38
+1.
+
+Plan professionnel ................................................................................................. 38
+
+2.
+
+Plan personnel ....................................................................................................... 38
+
+3.
+
+Difficultés rencontrées .......................................................................................... 39
+
+4.
+
+Suggestions ........................................................................................................... 39
+
+CONCLUSION GENERALE ............................................................................................. 41
+BIBLIOGRAPHIE ............................................................................................................. xiv
+WEBOGRAPHIE ................................................................................................................ xv
+ANNEXE ............................................................................................................................ xvi
+TABLES DES MATIERES ................................................................................................ xx
+
+Rédigé par YAMEOGO HASMIR
+
+filière : RSI
+
+xxi
+xxi
+
+
