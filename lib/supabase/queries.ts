@@ -3,7 +3,7 @@ import { supabase } from './client';
 // Récupérer les utilisateurs avec leurs rôles
 export const fetchUsersWithRoles = async () => {
   return supabase
-    .from('users')
+    .from('profiles')
     .select(`
       id, 
       phone, 
@@ -15,7 +15,7 @@ export const fetchUsersWithRoles = async () => {
 // Récupérer les détails d'un utilisateur spécifique
 export const fetchUserDetails = async (userId: string) => {
   return supabase
-    .from('users')
+    .from('profiles')
     .select(`
       id,
       phone,
@@ -66,7 +66,7 @@ export const updateSavingParameter = async (id: number, saving_rate: number, man
 export const fetchDashboardStats = async () => {
   // Nombre total d'utilisateurs
   const { count: usersCount } = await supabase
-    .from('users')
+    .from('profiles')
     .select('*', { count: 'exact', head: true });
     
   // Montant total d'épargne

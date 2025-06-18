@@ -16,7 +16,7 @@ function isValidSecret(secret: string | null): boolean {
 export async function POST(request: Request) {
   try {
     // Vérification de l'origine de la requête (CSRF protection)
-    const headersList = headers();
+    const headersList = await headers();
     const referer = headersList.get('referer') || '';
     const origin = headersList.get('origin') || '';
     const host = headersList.get('host') || '';

@@ -29,35 +29,32 @@ export const useAuthStore = create<AuthState>()(
       login: async (email, password) => {
         try {
           set({ isLoading: true, error: null });
-          
+          console.log('[AUTH STORE][login] Tentative de connexion pour', email);
           // Connexion avec Supabase
           const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
-          
+          console.log('[AUTH STORE][login] Résultat:', { data, error });
           if (error) throw error;
-          
           if (data.user) {
             // Vérifier si l'utilisateur est admin
             const { data: isAdminResult, error: adminRoleError } = await supabase.rpc('is_user_admin', {
               user_id_param: data.user.id
             });
-            
+            console.log('[AUTH STORE][login] Résultat isAdmin:', { isAdminResult, adminRoleError });
             if (adminRoleError) {
               console.error("Erreur vérification admin:", adminRoleError.message);
             }
-            
             // Vérifier si l'utilisateur est support
             const { data: isSupportResult, error: supportRoleError } = await supabase.rpc('has_role', {
               user_id_param: data.user.id,
               role_name_param: 'support'
             });
-            
+            console.log('[AUTH STORE][login] Résultat isSupport:', { isSupportResult, supportRoleError });
             if (supportRoleError) {
               console.error("Erreur vérification support:", supportRoleError.message);
             }
-            
             set({ 
               user: data.user, 
               isAdmin: !!isAdminResult,
@@ -65,6 +62,7 @@ export const useAuthStore = create<AuthState>()(
               isLoading: false,
               error: null
             });
+            console.log('[AUTH STORE][login] Utilisateur connecté:', { user: data.user, isAdmin: !!isAdminResult, isSupport: !!isSupportResult });
           }
         } catch (error: any) {
           set({ 
@@ -74,12 +72,14 @@ export const useAuthStore = create<AuthState>()(
             error: error.message, 
             isLoading: false 
           });
+          console.error('[AUTH STORE][login] Erreur:', error);
         }
       },
       
       logout: async () => {
         try {
           set({ isLoading: true });
+          console.log('[AUTH STORE][logout] Déconnexion en cours...');
           await supabase.auth.signOut();
           set({ 
             user: null, 
@@ -88,17 +88,19 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false, 
             error: null 
           });
+          console.log('[AUTH STORE][logout] Utilisateur déconnecté.');
         } catch (error: any) {
           set({ isLoading: false, error: error.message });
+          console.error('[AUTH STORE][logout] Erreur:', error);
         }
       },
       
       checkSession: async () => {
         try {
           set({ isLoading: true });
-          
+          console.log('[AUTH STORE][checkSession] Vérification de la session...');
           const { data: { session } } = await supabase.auth.getSession();
-          
+          console.log('[AUTH STORE][checkSession] Session récupérée:', session);
           if (!session) {
             set({ 
               user: null, 
@@ -107,28 +109,26 @@ export const useAuthStore = create<AuthState>()(
               isLoading: false, 
               error: null 
             });
+            console.log('[AUTH STORE][checkSession] Pas de session.');
             return;
           }
-          
           // Vérifier si l'utilisateur est admin
           const { data: isAdminResult, error: adminRoleError } = await supabase.rpc('is_user_admin', {
             user_id_param: session.user.id
           });
-          
+          console.log('[AUTH STORE][checkSession] Résultat isAdmin:', { isAdminResult, adminRoleError });
           if (adminRoleError) {
             console.error("Erreur vérification admin (session):", adminRoleError.message);
           }
-          
           // Vérifier si l'utilisateur est support
           const { data: isSupportResult, error: supportRoleError } = await supabase.rpc('has_role', {
             user_id_param: session.user.id,
             role_name_param: 'support'
           });
-          
+          console.log('[AUTH STORE][checkSession] Résultat isSupport:', { isSupportResult, supportRoleError });
           if (supportRoleError) {
             console.error("Erreur vérification support (session):", supportRoleError.message);
           }
-          
           set({ 
             user: session.user, 
             isAdmin: !!isAdminResult,
@@ -136,6 +136,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: null
           });
+          console.log('[AUTH STORE][checkSession] Utilisateur connecté:', { user: session.user, isAdmin: !!isAdminResult, isSupport: !!isSupportResult });
         } catch (error: any) {
           set({ 
             user: null, 
@@ -144,38 +145,39 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false, 
             error: null 
           });
+          console.error('[AUTH STORE][checkSession] Erreur:', error);
         }
       },
       
       refreshUserRole: async () => {
         const { user } = get();
-        
-        if (!user) return;
-        
+        if (!user) {
+          console.log('[AUTH STORE][refreshUserRole] Pas d\'utilisateur connecté.');
+          return;
+        }
         try {
           // Vérifier si l'utilisateur est admin
           const { data: isAdminResult, error: adminRoleError } = await supabase.rpc('is_user_admin', {
             user_id_param: user.id
           });
-          
+          console.log('[AUTH STORE][refreshUserRole] Résultat isAdmin:', { isAdminResult, adminRoleError });
           if (adminRoleError) {
             console.error("Erreur vérification admin (refresh):", adminRoleError.message);
           }
-          
           // Vérifier si l'utilisateur est support
           const { data: isSupportResult, error: supportRoleError } = await supabase.rpc('has_role', {
             user_id_param: user.id,
             role_name_param: 'support'
           });
-          
+          console.log('[AUTH STORE][refreshUserRole] Résultat isSupport:', { isSupportResult, supportRoleError });
           if (supportRoleError) {
             console.error("Erreur vérification support (refresh):", supportRoleError.message);
           }
-          
           set({
             isAdmin: !!isAdminResult,
             isSupport: !!isSupportResult
           });
+          console.log('[AUTH STORE][refreshUserRole] Rôles mis à jour:', { isAdmin: !!isAdminResult, isSupport: !!isSupportResult });
         } catch (error) {
           console.error("Erreur lors du rafraîchissement des rôles:", error);
         }
