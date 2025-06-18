@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useAuthStore } from '@/lib/store/authStore';
 import { usePathname, useRouter } from 'next/navigation';
 
+console.log('[AUTH DEBUG] AuthProvider monté/re-render');
+
 export default function AuthProvider({
   children,
 }: {
@@ -12,31 +14,39 @@ export default function AuthProvider({
   const { checkSession, user, isAdmin, isLoading } = useAuthStore();
   const pathname = usePathname();
   const router = useRouter();
-  
+
   // Vérifier la session au chargement de l'application
   useEffect(() => {
+    console.log('[AUTH DEBUG][useEffect-montage] Appel checkSession');
     checkSession();
-  }, [checkSession]);
-  
-  // Gérer les redirections basées sur l'authentification
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
-    // Ne rien faire pendant le chargement
-    if (isLoading) return;
-    
-    // Protéger les routes du dashboard côté client (en plus du middleware)
-    const isDashboardRoute = pathname?.startsWith('/dashboard');
-    
-    if (isDashboardRoute && !user) {
-      router.push('/login');
-    } else if (isDashboardRoute && !isAdmin) {
-      router.push('/access-denied');
+    console.log('[AUTH DEBUG][useEffect-redirection] user:', user, 'isAdmin:', isAdmin, 'isLoading:', isLoading, 'pathname:', pathname);
+    if (isLoading || typeof user === 'undefined') return;
+
+    // Redirection pour les routes dashboard
+    if (pathname.startsWith('/dashboard')) {
+      if (!user && pathname !== '/login') {
+        console.log('[AUTH DEBUG][redirect] Pas de user, redirection vers /login');
+        router.replace('/login');
+        return;
+      }
+      if (user && !isAdmin && pathname !== '/access-denied') {
+        console.log('[AUTH DEBUG][redirect] User sans admin, redirection vers /access-denied');
+        router.replace('/access-denied');
+        return;
+      }
     }
-    
-    // Rediriger les utilisateurs connectés de la page de connexion vers le dashboard
-    if (user && isAdmin && pathname === '/login') {
-      router.push('/dashboard/overview');
+
+    // Redirection pour la page de login
+    if (pathname === '/login' && user && isAdmin) {
+      console.log('[AUTH DEBUG][redirect] User admin connecté sur /login, redirection vers /dashboard/overview');
+      router.replace('/dashboard/overview');
+      return;
     }
   }, [user, isAdmin, isLoading, pathname, router]);
-  
+
   return <>{children}</>;
 } 

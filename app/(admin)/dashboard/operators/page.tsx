@@ -15,6 +15,9 @@ export default function OperatorsPage() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [addSuccess, setAddSuccess] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{
     name: string;
     commission_rate: number;
@@ -22,10 +25,7 @@ export default function OperatorsPage() {
     name: '',
     commission_rate: 0
   });
-  const [newOperator, setNewOperator] = useState<{
-    name: string;
-    commission_rate: number;
-  }>({
+  const [newOperator, setNewOperator] = useState({
     name: 'Telecel',
     commission_rate: 0.05
   });
@@ -79,25 +79,30 @@ export default function OperatorsPage() {
   }
 
   async function addOperator() {
+    setAddError(null);
+    setAddSuccess(null);
+    setAddLoading(true);
     try {
+      if (!newOperator.name || newOperator.commission_rate < 0) {
+        setAddError('Veuillez remplir tous les champs correctement.');
+        setAddLoading(false);
+        return;
+      }
       const { error } = await supabase
         .from('telecom_operators')
         .insert({
           name: newOperator.name,
           commission_rate: newOperator.commission_rate
         });
-
       if (error) throw error;
-      
+      setAddSuccess('Opérateur ajouté avec succès !');
       setShowAddModal(false);
-      setNewOperator({
-        name: 'Telecel',
-        commission_rate: 0.05
-      });
-      
+      setNewOperator({ name: 'Telecel', commission_rate: 0.05 });
       fetchOperators();
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout de l\'opérateur:', error);
+    } catch (error: any) {
+      setAddError(error.message || "Erreur lors de l'ajout de l'opérateur.");
+    } finally {
+      setAddLoading(false);
     }
   }
 
@@ -229,74 +234,67 @@ export default function OperatorsPage() {
 
       {/* Modal d'ajout d'opérateur */}
       {showAddModal && (
-        <div className="fixed inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 overflow-y-auto z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowAddModal(false)}></div>
-
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div className="sm:flex sm:items-start">
-                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                      Ajouter un nouvel opérateur
-                    </h3>
-                    <div className="mt-4 space-y-4">
-                      <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nom</label>
-                        <select
-                          id="name"
-                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                          value={newOperator.name}
-                          onChange={(e) => setNewOperator({ ...newOperator, name: e.target.value })}
-                        >
-                          <option value="Telecel">Telecel</option>
-                          <option value="Orange">Orange</option>
-                          <option value="Moov">Moov</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label htmlFor="commission" className="block text-sm font-medium text-gray-700">Taux de commission</label>
-                        <div className="mt-1 relative rounded-md shadow-sm">
-                          <input
-                            type="number"
-                            id="commission"
-                            min="0"
-                            max="0.5"
-                            step="0.001"
-                            className="focus:ring-green-500 focus:border-green-500 block w-full pr-12 sm:text-sm border-gray-300 rounded-md"
-                            value={newOperator.commission_rate}
-                            onChange={(e) => setNewOperator({ ...newOperator, commission_rate: parseFloat(e.target.value) })}
-                          />
-                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                            <span className="text-gray-500 sm:text-sm">%</span>
-                          </div>
-                        </div>
-                        <p className="mt-1 text-sm text-gray-500">
-                          Le taux de commission est appliqué sur chaque transaction.
-                        </p>
-                      </div>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full p-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">Ajouter un nouvel opérateur</h3>
+              <form onSubmit={e => { e.preventDefault(); addOperator(); }} className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nom</label>
+                  <select
+                    id="name"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    value={newOperator.name}
+                    onChange={e => setNewOperator({ ...newOperator, name: e.target.value })}
+                    required
+                  >
+                    <option value="Telecel">Telecel</option>
+                    <option value="Orange">Orange</option>
+                    <option value="Moov">Moov</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="commission" className="block text-sm font-medium text-gray-700">Taux de commission</label>
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <input
+                      type="number"
+                      id="commission"
+                      min="0"
+                      max="0.5"
+                      step="0.001"
+                      className="focus:ring-green-500 focus:border-green-500 block w-full pr-12 sm:text-sm border-gray-300 rounded-md"
+                      value={newOperator.commission_rate}
+                      onChange={e => setNewOperator({ ...newOperator, commission_rate: parseFloat(e.target.value) })}
+                      required
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 sm:text-sm">%</span>
                     </div>
                   </div>
+                  <p className="mt-1 text-sm text-gray-500">Le taux de commission est appliqué sur chaque transaction.</p>
                 </div>
-              </div>
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={addOperator}
-                >
-                  Ajouter
-                </button>
-                <button
-                  type="button"
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={() => setShowAddModal(false)}
-                >
-                  Annuler
-                </button>
-              </div>
+                {addError && <div className="text-sm text-red-600">{addError}</div>}
+                {addSuccess && <div className="text-sm text-green-600">{addSuccess}</div>}
+                <div className="flex justify-end space-x-2 mt-4">
+                  <button
+                    type="button"
+                    className="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:w-auto sm:text-sm"
+                    onClick={() => setShowAddModal(false)}
+                    disabled={addLoading}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:w-auto sm:text-sm disabled:opacity-50"
+                    disabled={addLoading}
+                  >
+                    {addLoading ? 'Création...' : 'Créer'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

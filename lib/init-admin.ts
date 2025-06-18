@@ -13,40 +13,6 @@ export async function initializeAdmin(secretKey: string) {
       throw new Error('Client Supabase avec privilèges d\'administration non disponible. Vérifiez SUPABASE_SERVICE_ROLE_KEY dans les variables d\'environnement.');
     }
 
-    // Essayer de vérifier si un administrateur existe déjà en utilisant la fonction is_user_admin
-    // D'abord, obtenir la liste des utilisateurs pour pouvoir vérifier s'ils sont admin
-    const { data: users, error: usersError } = await supabaseAdmin!.auth.admin.listUsers();
-    
-    if (usersError) {
-      throw usersError;
-    }
-    
-    // Vérifier s'il existe déjà un administrateur
-    let adminExists = false;
-    for (const user of users.users) {
-      // Utiliser la fonction RPC is_user_admin pour vérifier
-      const { data: isAdmin, error: checkError } = await supabaseAdmin!.rpc(
-        'is_user_admin',
-        { user_id_param: user.id }
-      );
-      
-      if (checkError) {
-        console.warn("Erreur lors de la vérification du rôle admin:", checkError);
-        continue;
-      }
-      
-      if (isAdmin) {
-        adminExists = true;
-        break;
-      }
-    }
-    
-    // Si un administrateur existe déjà, arrêter ici
-    if (adminExists) {
-      return { success: true, message: 'Un administrateur existe déjà' };
-    }
-    
-    // 1. Créer l'utilisateur avec Supabase Auth
     const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
     const adminPassword = process.env.ADMIN_PASSWORD;
     const adminPhone = process.env.NEXT_PUBLIC_ADMIN_PHONE;
@@ -55,79 +21,91 @@ export async function initializeAdmin(secretKey: string) {
       throw new Error('Informations d\'administrateur manquantes dans les variables d\'environnement');
     }
     
-    // Créer l'utilisateur dans Auth avec le client admin
-    const { data: authData, error: authError } = await supabaseAdmin!.auth.admin.createUser({
-      email: adminEmail,
-      password: adminPassword,
-      phone: adminPhone,
-      email_confirm: true // Confirmer automatiquement l'email
-    });
-    
-    if (authError) throw authError;
-    
-    if (!authData.user) {
-      throw new Error('Échec de la création de l\'utilisateur');
-    }
-    
-    // 2. Ajouter l'utilisateur à la table profiles (au lieu de users)
-    const { error: profileInsertError } = await supabaseAdmin!
-      .from('profiles')
-      .insert({
-        id: authData.user.id,
+    // 1. Chercher l'utilisateur par email dans Auth
+    let userId: string | null = null;
+    let userEmail: string | null = null;
+    let userPhone: string | null = null;
+    let userExists = false;
+
+    const { data: userList, error: userListError } = await supabaseAdmin!.auth.admin.listUsers({ email: adminEmail });
+    if (userListError) throw userListError;
+    if (userList && userList.users && userList.users.length > 0) {
+      // Utilisateur déjà existant
+      userId = userList.users[0].id;
+      userEmail = userList.users[0].email;
+      userPhone = userList.users[0].phone;
+      userExists = true;
+    } else {
+      // Créer l'utilisateur
+      const { data: authData, error: authError } = await supabaseAdmin!.auth.admin.createUser({
         email: adminEmail,
+        password: adminPassword,
         phone: adminPhone,
-        full_name: 'Administrateur'
+        email_confirm: true
       });
-    
-    if (profileInsertError) throw profileInsertError;
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Échec de la création de l\'utilisateur');
+      userId = authData.user.id;
+      userEmail = authData.user.email;
+      userPhone = authData.user.phone;
+    }
 
-    // Fetch the 'admin' role ID
+    // 2. Vérifier/créer le profil dans 'profiles'
+    const { data: profile, error: profileSelectError } = await supabaseAdmin!
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    if (profileSelectError && profileSelectError.code !== 'PGRST116') throw profileSelectError;
+    if (!profile) {
+      // Créer le profil si absent
+      const { error: profileInsertError } = await supabaseAdmin!
+        .from('profiles')
+        .insert({
+          id: userId,
+          email: userEmail || adminEmail,
+          phone: userPhone || adminPhone,
+          full_name: 'Administrateur'
+        });
+      if (profileInsertError) throw profileInsertError;
+    }
+
+    // 3. Vérifier que le rôle 'admin' existe
     const { data: adminRole, error: adminRoleError } = await supabaseAdmin!.from('roles').select('id').eq('name', 'admin').single();
-
     if (adminRoleError || !adminRole) {
       console.error('Error fetching admin role:', adminRoleError);
       return { success: false, message: "Failed to find admin role." };
     }
 
-    // Insert into user_roles table
-    const { error: userRoleInsertError } = await supabaseAdmin!.from('user_roles').insert({ user_id: authData.user.id, role_id: adminRole.id });
+    // 4. Vérifier/créer le lien dans 'user_roles'
+    const { data: existingRole } = await supabaseAdmin!
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('role_id', adminRole.id)
+      .single();
+    if (!existingRole) {
+      const { error: userRoleInsertError } = await supabaseAdmin!.from('user_roles').insert({ user_id: userId, role_id: adminRole.id });
+      if (userRoleInsertError) {
+        console.error('Error inserting into user_roles:', userRoleInsertError);
+        throw userRoleInsertError;
+      }
+    }
 
-    if (userRoleInsertError) {
-      console.error('Error inserting into user_roles:', userRoleInsertError);
-      throw userRoleInsertError;
-    }
-    
-    // 3. Utiliser la fonction RPC add_admin_role pour attribuer le rôle admin (EXISTING CALL - RETAINED)
-    const { data: addRoleResult, error: addRoleError } = await supabaseAdmin!.rpc(
-      'add_admin_role',
-      { user_id_param: authData.user.id }
-    );
-    
-    if (addRoleError) {
-      console.error('Erreur lors de l\'attribution du rôle admin:', addRoleError);
-      throw addRoleError;
-    }
-    
-    if (!addRoleResult) {
-      throw new Error('Échec de l\'attribution du rôle administrateur');
-    }
-    
-    // 4. Vérifier que le rôle a bien été attribué (EXISTING CALL - RETAINED)
+    // 5. Vérifier que le rôle a bien été attribué
     const { data: verifyAdmin, error: verifyError } = await supabaseAdmin!.rpc(
       'is_user_admin',
-      { user_id_param: authData.user.id }
+      { user_id_param: userId }
     );
-    
     if (verifyError) {
       console.error('Erreur lors de la vérification du rôle admin:', verifyError);
       throw verifyError;
     }
-    
     if (!verifyAdmin) {
       throw new Error('Vérification de l\'attribution du rôle admin échouée');
     }
-    
-    return { success: true, message: 'Administrateur créé avec succès' };
+
+    return { success: true, message: userExists ? 'Administrateur déjà existant, vérification et mise à jour effectuées.' : 'Administrateur créé avec succès' };
   } catch (error: any) {
     console.error('Erreur lors de l\'initialisation de l\'administrateur:', error);
     return { success: false, message: error.message || 'Erreur inconnue' };

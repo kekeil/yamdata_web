@@ -245,6 +245,23 @@ export interface Database {
           created_at?: string
         }
       }
+      profiles: {
+        Row: {
+          id: string
+          phone: string
+          created_at: string
+        }
+        Insert: {
+          id: string
+          phone: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          phone?: string
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -269,7 +286,7 @@ export interface Database {
 }
 
 // Types dérivés pour une utilisation plus facile dans l'application
-export type User = Database['public']['Tables']['users']['Row']
+export type User = Database['public']['Tables']['profiles']['Row']
 export type Role = Database['public']['Tables']['roles']['Row']
 export type UserRole = Database['public']['Tables']['user_roles']['Row']
 export type TelecomOperator = Database['public']['Tables']['telecom_operators']['Row']

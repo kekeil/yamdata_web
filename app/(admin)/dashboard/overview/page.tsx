@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { 
-  UsersIcon, 
-  CurrencyDollarIcon, 
+import {
+  UsersIcon,
+  CurrencyDollarIcon,
   DocumentTextIcon,
   ArrowTrendingUpIcon,
   BuildingOfficeIcon,
@@ -24,68 +24,65 @@ interface RecentTransaction {
   id: number;
   user_id: string;
   amount_paid: number;
-  data_cost: number;
-  saving_amount: number;
+  net_saving: number;
   created_at: string;
+  email?: string;
   phone?: string;
 }
 
 export default function OverviewPage() {
-  const [stats, setStats] = useState<DashboardStats>({
-    usersCount: 0,
-    totalSavings: 0,
-    transactionsCount: 0,
-    averageSaving: 0,
-    operatorsCount: 0,
-    plansCount: 0
-  });
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<RecentTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDashboardStats();
-    fetchRecentTransactions();
+    fetchDashboardData();
   }, []);
 
-  async function fetchDashboardStats() {
+  async function fetchDashboardData() {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      
-      // Nombre total d'utilisateurs
-      const { count: usersCount } = await supabase
-        .from('users')
+      // 1. Nombre total d'utilisateurs
+      const { count: usersCount, error: usersError } = await supabase
+        .from('profiles')
         .select('*', { count: 'exact', head: true });
-        
-      // Montant total d'épargne
-      const { data: savingsData } = await supabase
+      if (usersError) throw usersError;
+
+      // 2. Montant total d'épargne
+      const { data: savingsData, error: savingsError } = await supabase
         .from('user_savings')
         .select('balance');
-        
+      if (savingsError) throw savingsError;
       const totalSavings = savingsData?.reduce((sum, item) => sum + Number(item.balance), 0) || 0;
-        
-      // Nombre total de transactions
-      const { count: transactionsCount } = await supabase
+
+      // 3. Nombre total de transactions
+      const { count: transactionsCount, error: transactionsCountError } = await supabase
         .from('transactions')
         .select('*', { count: 'exact', head: true });
-      
-      // Moyenne d'épargne par transaction
-      const { data: transactionsData } = await supabase
+      if (transactionsCountError) throw transactionsCountError;
+
+      // 4. Moyenne d'épargne par transaction
+      const { data: transactionsData, error: transactionsDataError } = await supabase
         .from('transactions')
         .select('net_saving');
-        
+      if (transactionsDataError) throw transactionsDataError;
       const totalNetSaving = transactionsData?.reduce((sum, item) => sum + Number(item.net_saving), 0) || 0;
       const averageSaving = transactionsCount ? totalNetSaving / transactionsCount : 0;
-      
-      // Nombre d'opérateurs
-      const { count: operatorsCount } = await supabase
+
+      // 5. Nombre d'opérateurs
+      const { count: operatorsCount, error: operatorsError } = await supabase
         .from('telecom_operators')
         .select('*', { count: 'exact', head: true });
-      
-      // Nombre de forfaits
-      const { count: plansCount } = await supabase
+      if (operatorsError) throw operatorsError;
+
+      // 6. Nombre de forfaits
+      const { count: plansCount, error: plansError } = await supabase
         .from('data_plans')
         .select('*', { count: 'exact', head: true });
-      
+      if (plansError) throw plansError;
+
       setStats({
         usersCount: usersCount || 0,
         totalSavings,
@@ -94,50 +91,39 @@ export default function OverviewPage() {
         operatorsCount: operatorsCount || 0,
         plansCount: plansCount || 0
       });
-    } catch (error) {
-      console.error('Erreur lors de la récupération des statistiques:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
 
-  async function fetchRecentTransactions() {
-    try {
-      // Récupérer les 5 transactions les plus récentes
-      const { data: transactions } = await supabase
+      // 7. Dernières transactions (5)
+      const { data: transactions, error: recentError } = await supabase
         .from('transactions')
-        .select(`
-          id,
-          user_id,
-          amount_paid,
-          data_cost,
-          saving_amount,
-          created_at
-        `)
+        .select('id, user_id, amount_paid, net_saving, created_at')
         .order('created_at', { ascending: false })
         .limit(5);
-      
-      // Récupérer les informations des utilisateurs pour ces transactions
+      if (recentError) throw recentError;
+
+      let transactionsWithUser: RecentTransaction[] = [];
       if (transactions && transactions.length > 0) {
         const userIds = transactions.map(t => t.user_id);
-        const { data: users } = await supabase
-          .from('users')
-          .select('id, phone')
+        const { data: users, error: usersError2 } = await supabase
+          .from('profiles')
+          .select('id, email, phone')
           .in('id', userIds);
-        
-        // Associer les numéros de téléphone aux transactions
-        const transactionsWithUserInfo = transactions.map(transaction => {
-          const user = users?.find(u => u.id === transaction.user_id);
+        if (usersError2) throw usersError2;
+        transactionsWithUser = transactions.map(t => {
+          const user = users?.find(u => u.id === t.user_id);
           return {
-            ...transaction,
+            ...t,
+            email: user?.email,
             phone: user?.phone
           };
         });
-        
-        setRecentTransactions(transactionsWithUserInfo);
       }
-    } catch (error) {
-      console.error('Erreur lors de la récupération des transactions récentes:', error);
+      setRecentTransactions(transactionsWithUser);
+    } catch (err: any) {
+      setError('Erreur lors du chargement du dashboard : ' + (err.message || err));
+      setStats(null);
+      setRecentTransactions([]);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -156,191 +142,37 @@ export default function OverviewPage() {
     return amount.toLocaleString() + ' FCFA';
   }
 
+  // Ajout de logs pour le debug
+  console.log('[OVERVIEW DEBUG]', { stats, recentTransactions, loading, error });
+
+  // Affichage statique temporaire pour vérifier le montage du composant
+  // (à commenter/décommenter pour test)
+  // return <div style={{color: 'red'}}>Composant OverviewPage monté !</div>;
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-gray-900">Vue d'ensemble</h1>
-      
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Erreur : </strong>
+          <span className="block sm:inline">{error}</span>
+        </div>
+      )}
       {loading ? (
         <div className="text-center py-10">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto"></div>
           <p className="mt-2 text-gray-500">Chargement des statistiques...</p>
         </div>
-      ) : (
+      ) : stats ? (
         <>
           {/* Statistiques principales */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
-                    <UsersIcon className="h-6 w-6 text-white" aria-hidden="true" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">Utilisateurs</dt>
-                      <dd>
-                        <div className="text-lg font-medium text-gray-900">{stats.usersCount.toLocaleString()}</div>
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-5 py-3">
-                <div className="text-sm">
-                  <a href="/admin/dashboard/users" className="font-medium text-green-700 hover:text-green-900">
-                    Voir tous les utilisateurs
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
-                    <CurrencyDollarIcon className="h-6 w-6 text-white" aria-hidden="true" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">Épargne totale</dt>
-                      <dd>
-                        <div className="text-lg font-medium text-gray-900">{formatCurrency(stats.totalSavings)}</div>
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-5 py-3">
-                <div className="text-sm">
-                  <a href="/admin/dashboard/savings" className="font-medium text-green-700 hover:text-green-900">
-                    Voir les détails d'épargne
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
-                    <DocumentTextIcon className="h-6 w-6 text-white" aria-hidden="true" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">Transactions</dt>
-                      <dd>
-                        <div className="text-lg font-medium text-gray-900">{stats.transactionsCount.toLocaleString()}</div>
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-5 py-3">
-                <div className="text-sm">
-                  <a href="#" className="font-medium text-green-700 hover:text-green-900">
-                    Voir toutes les transactions
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
-                    <ArrowTrendingUpIcon className="h-6 w-6 text-white" aria-hidden="true" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">Épargne moyenne / transaction</dt>
-                      <dd>
-                        <div className="text-lg font-medium text-gray-900">{formatCurrency(stats.averageSaving)}</div>
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-5 py-3">
-                <div className="text-sm">
-                  <a href="#" className="font-medium text-green-700 hover:text-green-900">
-                    Voir les statistiques
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
-                    <BuildingOfficeIcon className="h-6 w-6 text-white" aria-hidden="true" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">Opérateurs</dt>
-                      <dd>
-                        <div className="text-lg font-medium text-gray-900">{stats.operatorsCount}</div>
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-5 py-3">
-                <div className="text-sm">
-                  <a href="/admin/dashboard/operators" className="font-medium text-green-700 hover:text-green-900">
-                    Gérer les opérateurs
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
-                    <PhoneIcon className="h-6 w-6 text-white" aria-hidden="true" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">Forfaits disponibles</dt>
-                      <dd>
-                        <div className="text-lg font-medium text-gray-900">{stats.plansCount}</div>
-                      </dd>
-                    </dl>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-50 px-5 py-3">
-                <div className="text-sm">
-                  <a href="/admin/dashboard/plans" className="font-medium text-green-700 hover:text-green-900">
-                    Gérer les forfaits
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Graphique d'épargne (simulé avec des barres) */}
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">Évolution de l'épargne</h2>
-            </div>
-            <div className="p-4">
-              <div className="h-64 flex items-end space-x-2">
-                {[30, 45, 28, 50, 75, 62, 80].map((value, index) => (
-                  <div key={index} className="flex-1 flex flex-col items-center">
-                    <div 
-                      className="w-full bg-green-500 rounded-t" 
-                      style={{ height: `${value}%` }}
-                    ></div>
-                    <div className="text-xs text-gray-500 mt-1">J-{7-index}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="text-center mt-4 text-sm text-gray-500">
-                Évolution de l'épargne sur les 7 derniers jours
-              </div>
-            </div>
+            <StatCard icon={<UsersIcon className="h-6 w-6 text-white" />} label="Utilisateurs" value={stats.usersCount.toLocaleString()} link="/dashboard/users" linkLabel="Voir tous les utilisateurs" />
+            <StatCard icon={<CurrencyDollarIcon className="h-6 w-6 text-white" />} label="Épargne totale" value={formatCurrency(stats.totalSavings)} link="/dashboard/savings" linkLabel="Voir les détails d'épargne" />
+            <StatCard icon={<DocumentTextIcon className="h-6 w-6 text-white" />} label="Transactions" value={stats.transactionsCount.toLocaleString()} link="#" linkLabel="Voir toutes les transactions" />
+            <StatCard icon={<ArrowTrendingUpIcon className="h-6 w-6 text-white" />} label="Épargne moyenne / transaction" value={formatCurrency(stats.averageSaving)} link="#" linkLabel="Voir les statistiques" />
+            <StatCard icon={<BuildingOfficeIcon className="h-6 w-6 text-white" />} label="Opérateurs" value={stats.operatorsCount} link="/dashboard/operators" linkLabel="Gérer les opérateurs" />
+            <StatCard icon={<PhoneIcon className="h-6 w-6 text-white" />} label="Forfaits disponibles" value={stats.plansCount} link="/dashboard/plans" linkLabel="Gérer les forfaits" />
           </div>
 
           {/* Transactions récentes */}
@@ -369,25 +201,14 @@ export default function OverviewPage() {
                         <div className="mt-2 sm:flex sm:justify-between">
                           <div className="sm:flex">
                             <p className="flex items-center text-sm text-gray-500">
-                              <svg className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                              </svg>
-                              {transaction.phone || `Utilisateur ${transaction.user_id.substring(0, 8)}...`}
+                              {transaction.email || `Utilisateur ${transaction.user_id.substring(0, 8)}...`} {transaction.phone ? `(${transaction.phone})` : ''}
                             </p>
                             <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                              <svg className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                              </svg>
                               {formatCurrency(transaction.amount_paid)}
                             </p>
                           </div>
                           <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                            <svg className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                            </svg>
-                            <p>
-                              {formatDate(transaction.created_at)}
-                            </p>
+                            <p>{formatDate(transaction.created_at)}</p>
                           </div>
                         </div>
                       </div>
@@ -398,7 +219,38 @@ export default function OverviewPage() {
             </div>
           </div>
         </>
+      ) : (
+        <div className="text-center py-10 text-gray-500">Aucune statistique à afficher.</div>
       )}
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value, link, linkLabel }: { icon: React.ReactNode, label: string, value: string | number, link: string, linkLabel: string }) {
+  return (
+    <div className="bg-white overflow-hidden shadow rounded-lg">
+      <div className="p-5">
+        <div className="flex items-center">
+          <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
+            {icon}
+          </div>
+          <div className="ml-5 w-0 flex-1">
+            <dl>
+              <dt className="text-sm font-medium text-gray-500 truncate">{label}</dt>
+              <dd>
+                <div className="text-lg font-medium text-gray-900">{value}</div>
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+      <div className="bg-gray-50 px-5 py-3">
+        <div className="text-sm">
+          <a href={link} className="font-medium text-green-700 hover:text-green-900">
+            {linkLabel}
+          </a>
+        </div>
+      </div>
     </div>
   );
 } 

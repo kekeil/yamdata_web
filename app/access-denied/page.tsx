@@ -9,15 +9,21 @@ export default function AccessDenied() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
   
+  console.log('[AUTH DEBUG][AccessDenied] Composant monté, user:', user);
+  
   // Si l'utilisateur n'est pas connecté, rediriger vers la page de connexion
   useEffect(() => {
+    console.log('[AUTH DEBUG][AccessDenied] Vérification de l\'utilisateur:', user);
     if (!user) {
+      console.log('[AUTH DEBUG][AccessDenied] Pas d\'utilisateur, redirection vers /login');
       router.push('/login');
     }
   }, [user, router]);
   
   const handleLogout = async () => {
+    console.log('[AUTH DEBUG][AccessDenied] Déconnexion en cours');
     await logout();
+    console.log('[AUTH DEBUG][AccessDenied] Redirection vers /login après déconnexion');
     router.push('/login');
   };
   
