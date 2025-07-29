@@ -1,10 +1,14 @@
-import { createPagesBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserClient } from '@supabase/ssr';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
 
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
+}
+
 // Créer un client Supabase pour utilisation côté client (navigateur) avec gestion automatique du cookie
-export const supabase = createPagesBrowserClient();
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
 // Interface pour le type de retour de la requête
 interface UserRoleResponse {
