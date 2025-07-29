@@ -46,14 +46,14 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
   async function fetchUser() {
     try {
       setLoading(true);
-      console.log('[AUTH DEBUG][EditUserPage] Début de la récupération de l\'utilisateur:', params.id);
+      setError(null);
+      
+      console.log('[DEBUG] Récupération utilisateur ID:', params.id);
       
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('[AUTH DEBUG][EditUserPage] Session:', session);
-      
       if (!session) {
-        console.log('[AUTH DEBUG][EditUserPage] Pas de session, redirection vers /login');
-        window.location.href = '/login';
+        console.log('[DEBUG] Pas de session, redirection');
+        router.push('/login');
         return;
       }
 
@@ -75,8 +75,9 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
         .single();
 
       if (error) {
-        console.error('[AUTH DEBUG][EditUserPage] Erreur Supabase:', error);
-        throw error;
+        console.error('[DEBUG] Erreur Supabase:', error);
+        setError(`Erreur lors de la récupération: ${error.message}`);
+        return;
       }
       
       if (!data) {
@@ -84,7 +85,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
         return;
       }
 
-      console.log('[AUTH DEBUG][EditUserPage] Utilisateur récupéré:', data);
+      console.log('[DEBUG] Utilisateur récupéré:', data);
       setUser(data);
       
       // Pré-remplir le formulaire
@@ -95,10 +96,10 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
         role: data.user_roles?.[0]?.roles?.name || 'user',
       };
       
-      console.log('[DEBUG] Données du formulaire pré-remplies:', formData);
+      console.log('[DEBUG] Données du formulaire:', formData);
       setForm(formData);
-    } catch (error) {
-      console.error('[AUTH DEBUG][EditUserPage] Erreur lors de la récupération de l\'utilisateur:', error);
+    } catch (error: any) {
+      console.error('[DEBUG] Erreur inattendue:', error);
       setError('Erreur lors de la récupération de l\'utilisateur');
     } finally {
       setLoading(false);
@@ -110,6 +111,8 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
     setError(null);
     setSuccess(null);
     setUpdateLoading(true);
+    
+    console.log('[DEBUG] Tentative de mise à jour avec:', form);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -128,18 +131,26 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
         })
         .eq('id', params.id);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('[DEBUG] Erreur mise à jour profil:', profileError);
+        throw profileError;
+      }
 
       // 2. Mettre à jour le rôle si changé
       const currentRole = user?.user_roles?.[0]?.roles?.name;
       if (currentRole !== form.role) {
+        console.log('[DEBUG] Changement de rôle:', currentRole, '->', form.role);
+        
         // Supprimer l'ancien rôle
         const { error: deleteRoleError } = await supabase
           .from('user_roles')
           .delete()
           .eq('user_id', params.id);
 
-        if (deleteRoleError) throw deleteRoleError;
+        if (deleteRoleError) {
+          console.error('[DEBUG] Erreur suppression ancien rôle:', deleteRoleError);
+          throw deleteRoleError;
+        }
 
         // Ajouter le nouveau rôle
         const { data: roleData, error: roleError } = await supabase
@@ -148,42 +159,61 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
           .eq('name', form.role)
           .single();
 
-        if (roleError) throw roleError;
+        if (roleError) {
+          console.error('[DEBUG] Erreur récupération rôle:', roleError);
+          throw roleError;
+        }
 
         const { error: userRoleError } = await supabase
           .from('user_roles')
           .insert({ user_id: params.id, role_id: roleData.id });
 
-        if (userRoleError) throw userRoleError;
+        if (userRoleError) {
+          console.error('[DEBUG] Erreur création nouveau rôle:', userRoleError);
+          throw userRoleError;
+        }
       }
 
       setSuccess('Utilisateur mis à jour avec succès !');
-      // Recharger les données de l'utilisateur
-      fetchUser();
+      
+      // Recharger les données après une seconde
+      setTimeout(() => {
+        fetchUser();
+      }, 1000);
     } catch (error: any) {
-      console.error('[AUTH DEBUG][EditUserPage] Erreur lors de la mise à jour:', error);
+      console.error('[DEBUG] Erreur lors de la mise à jour:', error);
       setError(error.message || 'Erreur lors de la mise à jour de l\'utilisateur.');
     } finally {
       setUpdateLoading(false);
     }
   }
 
+  // État de chargement
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-500 mx-auto"></div>
+          <p className="mt-2 text-gray-500">Chargement...</p>
+          <p className="text-sm text-gray-400">ID: {params.id}</p>
+        </div>
       </div>
     );
   }
 
+  // État d'erreur
   if (error && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Erreur</h1>
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Erreur</h1>
           <p className="text-gray-600 mb-4">{error}</p>
-          <Link href="/dashboard/users" className="text-green-600 hover:text-green-700">
-            Retour à la liste des utilisateurs
+          <p className="text-sm text-gray-400 mb-4">ID utilisateur: {params.id}</p>
+          <Link 
+            href="/dashboard/users" 
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+          >
+            Retour à la liste
           </Link>
         </div>
       </div>
@@ -191,18 +221,31 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6 p-6">
       <div className="flex items-center space-x-4">
         <Link
           href="/dashboard/users"
-          className="text-gray-500 hover:text-gray-700"
+          className="text-gray-500 hover:text-gray-700 text-sm"
         >
-          ← Retour
+          ← Retour à la liste
         </Link>
         <h1 className="text-2xl font-semibold text-gray-900">
           Modifier l'utilisateur
         </h1>
       </div>
+
+      {/* Messages de statut */}
+      {error && (
+        <div className="rounded-md bg-red-50 p-4">
+          <div className="text-sm text-red-700">{error}</div>
+        </div>
+      )}
+
+      {success && (
+        <div className="rounded-md bg-green-50 p-4">
+          <div className="text-sm text-green-700">{success}</div>
+        </div>
+      )}
 
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4 border-b border-gray-200">
@@ -210,7 +253,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
             Informations de l'utilisateur
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Modifiez les informations de l'utilisateur ci-dessous
+            Modifiez les informations ci-dessous
           </p>
         </div>
 
@@ -274,18 +317,6 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
             </select>
           </div>
 
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{error}</div>
-            </div>
-          )}
-
-          {success && (
-            <div className="rounded-md bg-green-50 p-4">
-              <div className="text-sm text-green-700">{success}</div>
-            </div>
-          )}
-
           <div className="flex justify-end space-x-3 pt-4">
             <Link
               href="/dashboard/users"
@@ -304,29 +335,26 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
         </form>
       </div>
 
+      {/* Informations debug */}
       {user && (
-        <div className="bg-white shadow rounded-lg">
+        <div className="bg-gray-50 shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-medium text-gray-900">
               Informations système
             </h3>
           </div>
           <div className="px-6 py-4 space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm font-medium text-gray-500">ID:</span>
-              <span className="text-sm text-gray-900 font-mono">{user.id}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm font-medium text-gray-500">Date de création:</span>
-              <span className="text-sm text-gray-900">
-                {new Date(user.created_at).toLocaleDateString('fr-FR', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </span>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium text-gray-500">ID:</span>
+                <span className="ml-2 font-mono text-gray-900">{user.id}</span>
+              </div>
+              <div>
+                <span className="font-medium text-gray-500">Créé le:</span>
+                <span className="ml-2 text-gray-900">
+                  {new Date(user.created_at).toLocaleDateString('fr-FR')}
+                </span>
+              </div>
             </div>
           </div>
         </div>
