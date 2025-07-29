@@ -91,9 +91,29 @@ export default function OperatorsPage() {
     setAddError(null);
     setAddSuccess(null);
     setAddLoading(true);
+    
+    console.log('[DEBUG] Tentative d\'ajout d\'opérateur:', newOperator);
+    
     try {
-      if (!newOperator.name || newOperator.commission_rate < 0 || newOperator.commission_rate > 50) {
-        setAddError('Veuillez remplir tous les champs correctement. Le taux doit être entre 0% et 50%.');
+      if (!newOperator.name) {
+        setAddError('Le nom de l\'opérateur est requis.');
+        setAddLoading(false);
+        return;
+      }
+      if (newOperator.commission_rate < 0 || newOperator.commission_rate > 50) {
+        setAddError('Le taux de commission doit être entre 0% et 50%.');
+        setAddLoading(false);
+        return;
+      }
+      
+      // Vérifier si l'opérateur existe déjà
+      const { data: existingOperators } = await supabase
+        .from('telecom_operators')
+        .select('name')
+        .eq('name', newOperator.name);
+      
+      if (existingOperators && existingOperators.length > 0) {
+        setAddError('Un opérateur avec ce nom existe déjà.');
         setAddLoading(false);
         return;
       }
@@ -101,18 +121,28 @@ export default function OperatorsPage() {
       // Convertir le pourcentage en décimal
       const commissionRateDecimal = newOperator.commission_rate / 100;
       
-      const { error } = await supabase
+      console.log('[DEBUG] Insertion opérateur avec taux décimal:', commissionRateDecimal);
+      
+      const { data, error } = await supabase
         .from('telecom_operators')
         .insert({
           name: newOperator.name,
           commission_rate: commissionRateDecimal
-        });
+        })
+        .select();
+      
+      console.log('[DEBUG] Résultat insertion opérateur:', { data, error });
+      
       if (error) throw error;
+      
       setAddSuccess('Opérateur ajouté avec succès !');
-      setShowAddModal(false);
-      setNewOperator({ name: 'Telecel', commission_rate: 5 });
-      fetchOperators();
+      setTimeout(() => {
+        setShowAddModal(false);
+        setNewOperator({ name: 'Telecel', commission_rate: 5 });
+        fetchOperators();
+      }, 1500);
     } catch (error: any) {
+      console.error('[DEBUG] Erreur lors de l\'ajout d\'opérateur:', error);
       setAddError(error.message || "Erreur lors de l'ajout de l'opérateur.");
     } finally {
       setAddLoading(false);

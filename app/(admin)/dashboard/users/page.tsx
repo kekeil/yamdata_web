@@ -138,11 +138,24 @@ export default function UsersPage() {
     }
   }
 
-  async function handleDeleteUser(userId) {
+  async function handleDeleteUser(userId: string) {
     if (!window.confirm("Supprimer cet utilisateur ?")) return;
-    const { error } = await supabase.from('profiles').delete().eq('id', userId);
-    if (!error) fetchUsers();
-    else alert("Erreur lors de la suppression");
+    
+    try {
+      console.log('[DEBUG] Suppression utilisateur:', userId);
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
+      
+      if (error) {
+        console.error('[DEBUG] Erreur suppression:', error);
+        alert("Erreur lors de la suppression: " + error.message);
+      } else {
+        console.log('[DEBUG] Suppression réussie');
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error('[DEBUG] Erreur inattendue:', error);
+      alert("Erreur inattendue lors de la suppression");
+    }
   }
 
   const filteredUsers = users.filter(user => 
@@ -336,9 +349,13 @@ export default function UsersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                        <a href={`/dashboard/users/${user.id}`} className="text-indigo-600 hover:text-indigo-900">
+                        <Link 
+                          href={`/dashboard/users/${user.id}`} 
+                          className="text-indigo-600 hover:text-indigo-900"
+                          onClick={() => console.log('[DEBUG] Redirection vers:', `/dashboard/users/${user.id}`)}
+                        >
                           <span className="h-5 w-5" role="img" aria-label="éditer">✏️</span>
-                        </a>
+                        </Link>
                         <button
                           className="text-red-600 hover:text-red-900"
                           onClick={() => handleDeleteUser(user.id)}

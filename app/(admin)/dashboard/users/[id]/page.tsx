@@ -39,6 +39,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
   });
 
   useEffect(() => {
+    console.log('[DEBUG] EditUserPage montée avec ID:', params.id);
     fetchUser();
   }, [params.id]);
 
@@ -87,12 +88,15 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
       setUser(data);
       
       // Pré-remplir le formulaire
-      setForm({
+      const formData = {
         email: data.email || '',
         full_name: data.full_name || '',
         phone: data.phone || '',
         role: data.user_roles?.[0]?.roles?.name || 'user',
-      });
+      };
+      
+      console.log('[DEBUG] Données du formulaire pré-remplies:', formData);
+      setForm(formData);
     } catch (error) {
       console.error('[AUTH DEBUG][EditUserPage] Erreur lors de la récupération de l\'utilisateur:', error);
       setError('Erreur lors de la récupération de l\'utilisateur');

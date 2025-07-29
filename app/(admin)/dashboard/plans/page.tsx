@@ -112,6 +112,9 @@ export default function DataPlansPage() {
       setOperators(data || []);
       if (data && data.length > 0) {
         setNewPlan(prev => ({ ...prev, operator_id: data[0].id }));
+        console.log('[DEBUG] Opérateur par défaut défini:', data[0].id);
+      } else {
+        console.log('[DEBUG] Aucun opérateur trouvé');
       }
     } catch (error) {
       console.error('[AUTH DEBUG][PlansPage] Erreur lors de la récupération des opérateurs:', error);
@@ -122,19 +125,49 @@ export default function DataPlansPage() {
     setAddError(null);
     setAddSuccess(null);
     setAddLoading(true);
+    
+    console.log('[DEBUG] Tentative d\'ajout de forfait:', newPlan);
+    
     try {
-      if (!newPlan.name || newPlan.volume_mb <= 0 || newPlan.price <= 0 || newPlan.validity_days <= 0 || newPlan.operator_id <= 0) {
-        setAddError('Veuillez remplir tous les champs correctement.');
+      // Validation détaillée
+      if (!newPlan.name) {
+        setAddError('Le nom du forfait est requis.');
         setAddLoading(false);
         return;
       }
+      if (newPlan.volume_mb <= 0) {
+        setAddError('Le volume doit être supérieur à 0.');
+        setAddLoading(false);
+        return;
+      }
+      if (newPlan.price <= 0) {
+        setAddError('Le prix doit être supérieur à 0.');
+        setAddLoading(false);
+        return;
+      }
+      if (newPlan.validity_days <= 0) {
+        setAddError('La validité doit être supérieure à 0.');
+        setAddLoading(false);
+        return;
+      }
+      if (newPlan.operator_id <= 0) {
+        setAddError('Veuillez sélectionner un opérateur.');
+        setAddLoading(false);
+        return;
+      }
+      
+      console.log('[DEBUG] Validation passée, vérification session...');
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         setAddError('Session expirée, veuillez vous reconnecter.');
         setAddLoading(false);
         return;
       }
-      const { error } = await supabase
+      
+      console.log('[DEBUG] Session OK, insertion en cours...');
+      
+      const { data, error } = await supabase
         .from('data_plans')
         .insert({
           name: newPlan.name,
@@ -142,19 +175,27 @@ export default function DataPlansPage() {
           price: newPlan.price,
           validity_days: newPlan.validity_days,
           operator_id: newPlan.operator_id
-        });
+        })
+        .select();
+      
+      console.log('[DEBUG] Résultat insertion:', { data, error });
+      
       if (error) throw error;
+      
       setAddSuccess('Forfait ajouté avec succès !');
-      setShowAddModal(false);
-      setNewPlan({
-        name: '',
-        volume_mb: 1024,
-        price: 1000,
-        validity_days: 30,
-        operator_id: operators[0]?.id || 0
-      });
-      fetchPlans();
+      setTimeout(() => {
+        setShowAddModal(false);
+        setNewPlan({
+          name: '',
+          volume_mb: 1024,
+          price: 1000,
+          validity_days: 30,
+          operator_id: operators[0]?.id || 0
+        });
+        fetchPlans();
+      }, 1500);
     } catch (error: any) {
+      console.error('[DEBUG] Erreur lors de l\'ajout:', error);
       setAddError(error.message || "Erreur lors de l'ajout du forfait.");
     } finally {
       setAddLoading(false);
@@ -243,14 +284,28 @@ export default function DataPlansPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold text-gray-900">Gestion des Forfaits</h1>
-        <button
-          onClick={() => setShowAddModal(true)}
-          type="button"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          Ajouter un forfait
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={async () => {
+              console.log('[TEST] Test de connexion...');
+              const { data, error } = await supabase.from('telecom_operators').select('*');
+              console.log('[TEST] Opérateurs:', { data, error });
+              alert(`Opérateurs trouvés: ${data?.length || 0}`);
+            }}
+            type="button"
+            className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+          >
+            Test DB
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            type="button"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none"
+          >
+            <PlusIcon className="h-5 w-5 mr-2" />
+            Ajouter un forfait
+          </button>
+        </div>
       </div>
 
       <div className="bg-white shadow rounded-lg overflow-hidden">
