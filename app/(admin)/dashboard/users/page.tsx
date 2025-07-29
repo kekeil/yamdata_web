@@ -31,6 +31,17 @@ export default function UsersPage() {
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [addSuccess, setAddSuccess] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSuccess, setEditSuccess] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    email: '',
+    full_name: '',
+    phone: '',
+    role: 'user',
+  });
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -138,11 +149,106 @@ export default function UsersPage() {
     }
   }
 
-  async function handleDeleteUser(userId) {
+  async function handleDeleteUser(userId: string) {
     if (!window.confirm("Supprimer cet utilisateur ?")) return;
-    const { error } = await supabase.from('profiles').delete().eq('id', userId);
-    if (!error) fetchUsers();
-    else alert("Erreur lors de la suppression");
+    
+    try {
+      console.log('[DEBUG] Suppression utilisateur:', userId);
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
+      
+      if (error) {
+        console.error('[DEBUG] Erreur suppression:', error);
+        alert("Erreur lors de la suppression: " + error.message);
+      } else {
+        console.log('[DEBUG] Suppression réussie');
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error('[DEBUG] Erreur inattendue:', error);
+      alert("Erreur inattendue lors de la suppression");
+    }
+  }
+
+  function startEditUser(user: User) {
+    console.log('[DEBUG] Début édition utilisateur:', user);
+    setEditingUser(user);
+    setEditForm({
+      email: user.email || '',
+      full_name: user.full_name || '',
+      phone: user.phone || '',
+      role: user.user_roles?.[0]?.roles?.name || 'user',
+    });
+    setEditError(null);
+    setEditSuccess(null);
+    setShowEditModal(true);
+  }
+
+  async function handleEditUser(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingUser) return;
+    
+    setEditError(null);
+    setEditSuccess(null);
+    setEditLoading(true);
+    
+    console.log('[DEBUG] Mise à jour utilisateur:', editingUser.id, editForm);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setEditError('Session expirée, veuillez vous reconnecter.');
+        return;
+      }
+
+      // 1. Mettre à jour le profil
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          email: editForm.email,
+          full_name: editForm.full_name,
+          phone: editForm.phone,
+        })
+        .eq('id', editingUser.id);
+
+      if (profileError) throw profileError;
+
+      // 2. Mettre à jour le rôle si changé
+      const currentRole = editingUser.user_roles?.[0]?.roles?.name;
+      if (currentRole !== editForm.role) {
+        // Supprimer l'ancien rôle
+        await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', editingUser.id);
+
+        // Ajouter le nouveau rôle
+        const { data: roleData, error: roleError } = await supabase
+          .from('roles')
+          .select('id')
+          .eq('name', editForm.role)
+          .single();
+
+        if (roleError) throw roleError;
+
+        const { error: userRoleError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: editingUser.id, role_id: roleData.id });
+
+        if (userRoleError) throw userRoleError;
+      }
+
+      setEditSuccess('Utilisateur mis à jour avec succès !');
+      setTimeout(() => {
+        setShowEditModal(false);
+        setEditingUser(null);
+        fetchUsers();
+      }, 1500);
+    } catch (error: any) {
+      console.error('[DEBUG] Erreur lors de la modification:', error);
+      setEditError(error.message || 'Erreur lors de la modification de l\'utilisateur.');
+    } finally {
+      setEditLoading(false);
+    }
   }
 
   const filteredUsers = users.filter(user => 
@@ -155,14 +261,32 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold text-gray-900">Gestion des Utilisateurs</h1>
-        <button
-          type="button"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none"
-          onClick={() => setShowAddModal(true)}
-        >
-          <span className="h-5 w-5 mr-2" role="img" aria-label="ajouter">➕</span>
-          Ajouter un utilisateur
-        </button>
+        <div className="flex space-x-2">
+          <button
+            type="button"
+            className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+            onClick={async () => {
+              console.log('[TEST] Test de navigation...');
+              if (users.length > 0) {
+                const testUserId = users[0].id;
+                console.log('[TEST] Test avec utilisateur:', testUserId);
+                window.open(`/dashboard/users/${testUserId}`, '_blank');
+              } else {
+                alert('Aucun utilisateur disponible pour le test');
+              }
+            }}
+          >
+            Test Page
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none"
+            onClick={() => setShowAddModal(true)}
+          >
+            <span className="h-5 w-5 mr-2" role="img" aria-label="ajouter">➕</span>
+            Ajouter un utilisateur
+          </button>
+        </div>
       </div>
 
       {/* Modal d'ajout d'utilisateur (amélioré) */}
@@ -260,6 +384,91 @@ export default function UsersPage() {
         </div>
       )}
 
+      {/* Modal d'édition d'utilisateur */}
+      {showEditModal && editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
+            onClick={() => setShowEditModal(false)}
+          />
+          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-auto z-10 p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Modifier l'utilisateur
+            </h2>
+            <form onSubmit={handleEditUser} className="space-y-4">
+              <div>
+                <label htmlFor="edit_email" className="block text-sm font-medium text-gray-700">Email</label>
+                <input
+                  type="email"
+                  id="edit_email"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                  value={editForm.email}
+                  onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit_full_name" className="block text-sm font-medium text-gray-700">Nom complet</label>
+                <input
+                  type="text"
+                  id="edit_full_name"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                  value={editForm.full_name}
+                  onChange={e => setEditForm(f => ({ ...f, full_name: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit_phone" className="block text-sm font-medium text-gray-700">Téléphone</label>
+                <input
+                  type="tel"
+                  id="edit_phone"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                  value={editForm.phone}
+                  onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit_role" className="block text-sm font-medium text-gray-700">Rôle</label>
+                <select
+                  id="edit_role"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                  value={editForm.role}
+                  onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}
+                  required
+                >
+                  {ROLES.map(r => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {editError && <div className="text-sm text-red-600">{editError}</div>}
+              {editSuccess && <div className="text-sm text-green-600">{editSuccess}</div>}
+              
+              <div className="flex justify-end space-x-2 mt-4">
+                <button
+                  type="button"
+                  className="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:w-auto sm:text-sm"
+                  onClick={() => setShowEditModal(false)}
+                  disabled={editLoading}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:w-auto sm:text-sm disabled:opacity-50"
+                  disabled={editLoading}
+                >
+                  {editLoading ? 'Modification...' : 'Modifier'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="p-4 border-b border-gray-200">
           <div className="flex justify-between items-center">
@@ -336,12 +545,25 @@ export default function UsersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                        <a href={`/dashboard/users/${user.id}`} className="text-indigo-600 hover:text-indigo-900">
+                        <button
+                          className="text-indigo-600 hover:text-indigo-900"
+                          onClick={() => startEditUser(user)}
+                          title="Modifier (modal)"
+                        >
                           <span className="h-5 w-5" role="img" aria-label="éditer">✏️</span>
-                        </a>
+                        </button>
+                        <Link 
+                          href={`/dashboard/users/${user.id}`} 
+                          className="text-blue-600 hover:text-blue-900"
+                          onClick={() => console.log('[DEBUG] Redirection vers:', `/dashboard/users/${user.id}`)}
+                          title="Modifier (page dédiée)"
+                        >
+                          <span className="h-5 w-5" role="img" aria-label="éditer page">📝</span>
+                        </Link>
                         <button
                           className="text-red-600 hover:text-red-900"
                           onClick={() => handleDeleteUser(user.id)}
+                          title="Supprimer"
                         >
                           <span className="h-5 w-5" role="img" aria-label="supprimer">🗑️</span>
                         </button>

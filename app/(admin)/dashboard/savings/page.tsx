@@ -31,6 +31,8 @@ export default function SavingsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSuccess, setEditSuccess] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<{
     saving_rate: number;
     management_fee: number;
@@ -97,6 +99,8 @@ export default function SavingsPage() {
 
   function startEditing(parameter: SavingParameter) {
     setEditingId(parameter.id);
+    setEditError(null);
+    setEditSuccess(null);
     setEditValues({
       saving_rate: parameter.saving_rate,
       management_fee: parameter.management_fee
@@ -105,25 +109,58 @@ export default function SavingsPage() {
 
   async function saveChanges(id: number) {
     try {
-      const { error } = await supabase
+      setEditError(null);
+      setEditSuccess(null);
+      
+      console.log('[DEBUG] Tentative de mise à jour savings:', { id, editValues });
+      
+      // Validation des valeurs
+      if (editValues.saving_rate < 0 || editValues.saving_rate > 1) {
+        setEditError('Le taux d\'épargne doit être entre 0% et 100%');
+        return;
+      }
+      
+      if (editValues.management_fee < 0 || editValues.management_fee > 1) {
+        setEditError('Les frais de gestion doivent être entre 0% et 100%');
+        return;
+      }
+
+      // Vérifier la session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setEditError('Session expirée, veuillez vous reconnecter.');
+        return;
+      }
+
+      const { data, error } = await supabase
         .from('saving_parameters')
         .update({
           saving_rate: editValues.saving_rate,
           management_fee: editValues.management_fee
         })
-        .eq('id', id);
+        .eq('id', id)
+        .select();
+
+      console.log('[DEBUG] Résultat mise à jour savings:', { data, error });
 
       if (error) throw error;
       
-      setEditingId(null);
-      fetchSavingParameters();
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour des paramètres:', error);
+      setEditSuccess('Paramètres mis à jour avec succès !');
+      setTimeout(() => {
+        setEditingId(null);
+        setEditSuccess(null);
+        fetchSavingParameters();
+      }, 1000);
+    } catch (error: any) {
+      console.error('[DEBUG] Erreur lors de la mise à jour des paramètres:', error);
+      setEditError(error.message || 'Erreur lors de la mise à jour');
     }
   }
 
   function cancelEditing() {
     setEditingId(null);
+    setEditError(null);
+    setEditSuccess(null);
   }
 
   function formatPercent(value: number) {
@@ -202,6 +239,19 @@ export default function SavingsPage() {
       {/* Paramètres d'épargne */}
       <div>
         <h2 className="text-lg font-medium text-gray-900 mb-4">Paramètres d'épargne</h2>
+        
+        {editError && (
+          <div className="mb-4 rounded-md bg-red-50 p-4">
+            <div className="text-sm text-red-700">{editError}</div>
+          </div>
+        )}
+        
+        {editSuccess && (
+          <div className="mb-4 rounded-md bg-green-50 p-4">
+            <div className="text-sm text-green-700">{editSuccess}</div>
+          </div>
+        )}
+        
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
           <div className="overflow-x-auto">
             {loading ? (
@@ -261,12 +311,12 @@ export default function SavingsPage() {
                           {editingId === param.id ? (
                             <input
                               type="number"
-                              min="0.1"
-                              max="0.9"
+                              min="0.01"
+                              max="0.99"
                               step="0.01"
                               className="w-20 border border-gray-300 rounded-md shadow-sm py-1 px-2 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                               value={editValues.saving_rate}
-                              onChange={(e) => setEditValues({...editValues, saving_rate: parseFloat(e.target.value)})}
+                              onChange={(e) => setEditValues({...editValues, saving_rate: parseFloat(e.target.value) || 0})}
                             />
                           ) : (
                             formatPercent(param.saving_rate)
@@ -281,7 +331,7 @@ export default function SavingsPage() {
                               step="0.001"
                               className="w-20 border border-gray-300 rounded-md shadow-sm py-1 px-2 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                               value={editValues.management_fee}
-                              onChange={(e) => setEditValues({...editValues, management_fee: parseFloat(e.target.value)})}
+                              onChange={(e) => setEditValues({...editValues, management_fee: parseFloat(e.target.value) || 0})}
                             />
                           ) : (
                             formatPercent(param.management_fee)
