@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { PencilIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, TrashIcon, PlusIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 interface DataPlan {
   id: number;
@@ -24,11 +24,19 @@ export default function DataPlansPage() {
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [addSuccess, setAddSuccess] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editPlan, setEditPlan] = useState({
+    name: '',
+    volume_mb: 1024,
+    price: 1000,
+    validity_days: 30,
+    operator_id: 0
+  });
   const [operators, setOperators] = useState<{id: number, name: string}[]>([]);
   const [newPlan, setNewPlan] = useState({
     name: '',
-    volume_mb: 1,
-    price: 0,
+    volume_mb: 1024,
+    price: 1000,
     validity_days: 30,
     operator_id: 0
   });
@@ -115,7 +123,7 @@ export default function DataPlansPage() {
     setAddSuccess(null);
     setAddLoading(true);
     try {
-      if (!newPlan.name || newPlan.volume_mb <= 0 || newPlan.price <= 0 || newPlan.validity_days <= 0 || !newPlan.operator_id) {
+      if (!newPlan.name || newPlan.volume_mb <= 0 || newPlan.price <= 0 || newPlan.validity_days <= 0 || newPlan.operator_id <= 0) {
         setAddError('Veuillez remplir tous les champs correctement.');
         setAddLoading(false);
         return;
@@ -140,8 +148,8 @@ export default function DataPlansPage() {
       setShowAddModal(false);
       setNewPlan({
         name: '',
-        volume_mb: 1,
-        price: 0,
+        volume_mb: 1024,
+        price: 1000,
         validity_days: 30,
         operator_id: operators[0]?.id || 0
       });
@@ -151,6 +159,55 @@ export default function DataPlansPage() {
     } finally {
       setAddLoading(false);
     }
+  }
+
+  function startEditingPlan(plan: DataPlan) {
+    setEditingId(plan.id);
+    setEditPlan({
+      name: plan.name,
+      volume_mb: plan.volume_mb,
+      price: plan.price,
+      validity_days: plan.validity_days,
+      operator_id: plan.telecom_operators.id
+    });
+  }
+
+  async function handleUpdatePlan() {
+    try {
+      if (!editPlan.name || editPlan.volume_mb <= 0 || editPlan.price <= 0 || editPlan.validity_days <= 0 || editPlan.operator_id <= 0) {
+        alert('Veuillez remplir tous les champs correctement.');
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert('Session expirée, veuillez vous reconnecter.');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('data_plans')
+        .update({
+          name: editPlan.name,
+          volume_mb: editPlan.volume_mb,
+          price: editPlan.price,
+          validity_days: editPlan.validity_days,
+          operator_id: editPlan.operator_id
+        })
+        .eq('id', editingId);
+
+      if (error) throw error;
+      
+      setEditingId(null);
+      fetchPlans();
+    } catch (error: any) {
+      console.error('Erreur lors de la mise à jour du forfait:', error);
+      alert(error.message || 'Erreur lors de la mise à jour du forfait.');
+    }
+  }
+
+  function cancelEditingPlan() {
+    setEditingId(null);
   }
 
   async function handleDeletePlan(id: number) {
@@ -241,36 +298,109 @@ export default function DataPlansPage() {
                 plans.map((plan) => (
                   <tr key={plan.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {plan.name}
+                      {editingId === plan.id ? (
+                        <input
+                          type="text"
+                          className="w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                          value={editPlan.name}
+                          onChange={e => setEditPlan({ ...editPlan, name: e.target.value })}
+                        />
+                      ) : (
+                        plan.name
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${plan.telecom_operators.name === 'Orange' ? 'bg-orange-100 text-orange-800' : 
-                        plan.telecom_operators.name === 'Telecel' ? 'bg-red-100 text-red-800' : 
-                        'bg-blue-100 text-blue-800'}`}>
-                        {plan.telecom_operators.name}
-                      </span>
+                      {editingId === plan.id ? (
+                        <select
+                          className="border border-gray-300 rounded-md shadow-sm py-1 px-2 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                          value={editPlan.operator_id}
+                          onChange={e => setEditPlan({ ...editPlan, operator_id: parseInt(e.target.value) })}
+                        >
+                          {operators.map(op => (
+                            <option key={op.id} value={op.id}>{op.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                          ${plan.telecom_operators.name === 'Orange' ? 'bg-orange-100 text-orange-800' : 
+                          plan.telecom_operators.name === 'Telecel' ? 'bg-red-100 text-red-800' : 
+                          'bg-blue-100 text-blue-800'}`}>
+                          {plan.telecom_operators.name}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {(plan.volume_mb / 1024).toFixed(2)} Go
+                      {editingId === plan.id ? (
+                        <input
+                          type="number"
+                          min="1"
+                          className="w-20 border border-gray-300 rounded-md shadow-sm py-1 px-2 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                          value={editPlan.volume_mb}
+                          onChange={e => setEditPlan({ ...editPlan, volume_mb: parseInt(e.target.value) || 1 })}
+                        />
+                      ) : (
+                        `${(plan.volume_mb / 1024).toFixed(2)} Go`
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {plan.price.toLocaleString()} FCFA
+                      {editingId === plan.id ? (
+                        <input
+                          type="number"
+                          min="1"
+                          className="w-24 border border-gray-300 rounded-md shadow-sm py-1 px-2 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                          value={editPlan.price}
+                          onChange={e => setEditPlan({ ...editPlan, price: parseInt(e.target.value) || 1 })}
+                        />
+                      ) : (
+                        `${plan.price.toLocaleString()} FCFA`
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {plan.validity_days} jours
+                      {editingId === plan.id ? (
+                        <input
+                          type="number"
+                          min="1"
+                          className="w-16 border border-gray-300 rounded-md shadow-sm py-1 px-2 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                          value={editPlan.validity_days}
+                          onChange={e => setEditPlan({ ...editPlan, validity_days: parseInt(e.target.value) || 1 })}
+                        />
+                      ) : (
+                        `${plan.validity_days} jours`
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                        <button className="text-indigo-600 hover:text-indigo-900">
-                          <PencilIcon className="h-5 w-5" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeletePlan(plan.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <TrashIcon className="h-5 w-5" />
-                        </button>
+                        {editingId === plan.id ? (
+                          <>
+                            <button 
+                              onClick={handleUpdatePlan}
+                              className="text-green-600 hover:text-green-900"
+                            >
+                              <CheckIcon className="h-5 w-5" />
+                            </button>
+                            <button 
+                              onClick={cancelEditingPlan}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              <XMarkIcon className="h-5 w-5" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button 
+                              onClick={() => startEditingPlan(plan)}
+                              className="text-indigo-600 hover:text-indigo-900"
+                            >
+                              <PencilIcon className="h-5 w-5" />
+                            </button>
+                            <button 
+                              onClick={() => handleDeletePlan(plan.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              <TrashIcon className="h-5 w-5" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -310,6 +440,7 @@ export default function DataPlansPage() {
                     onChange={e => setNewPlan({ ...newPlan, operator_id: parseInt(e.target.value) })}
                     required
                   >
+                    <option value="0">Sélectionner un opérateur</option>
                     {operators.map(op => (
                       <option key={op.id} value={op.id}>{op.name}</option>
                     ))}

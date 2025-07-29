@@ -27,7 +27,7 @@ export default function OperatorsPage() {
   });
   const [newOperator, setNewOperator] = useState({
     name: 'Telecel',
-    commission_rate: 0.05
+    commission_rate: 5
   });
 
   useEffect(() => {
@@ -55,17 +55,26 @@ export default function OperatorsPage() {
     setEditingId(operator.id);
     setEditValues({
       name: operator.name,
-      commission_rate: operator.commission_rate
+      commission_rate: operator.commission_rate * 100 // Convertir en pourcentage pour affichage
     });
   }
 
   async function saveChanges(id: number) {
     try {
+      // Validation
+      if (editValues.commission_rate < 0 || editValues.commission_rate > 50) {
+        alert('Le taux de commission doit être entre 0% et 50%');
+        return;
+      }
+      
+      // Convertir le pourcentage en décimal
+      const commissionRateDecimal = editValues.commission_rate / 100;
+      
       const { error } = await supabase
         .from('telecom_operators')
         .update({
           name: editValues.name,
-          commission_rate: editValues.commission_rate
+          commission_rate: commissionRateDecimal
         })
         .eq('id', id);
 
@@ -83,21 +92,25 @@ export default function OperatorsPage() {
     setAddSuccess(null);
     setAddLoading(true);
     try {
-      if (!newOperator.name || newOperator.commission_rate < 0) {
-        setAddError('Veuillez remplir tous les champs correctement.');
+      if (!newOperator.name || newOperator.commission_rate < 0 || newOperator.commission_rate > 50) {
+        setAddError('Veuillez remplir tous les champs correctement. Le taux doit être entre 0% et 50%.');
         setAddLoading(false);
         return;
       }
+      
+      // Convertir le pourcentage en décimal
+      const commissionRateDecimal = newOperator.commission_rate / 100;
+      
       const { error } = await supabase
         .from('telecom_operators')
         .insert({
           name: newOperator.name,
-          commission_rate: newOperator.commission_rate
+          commission_rate: commissionRateDecimal
         });
       if (error) throw error;
       setAddSuccess('Opérateur ajouté avec succès !');
       setShowAddModal(false);
-      setNewOperator({ name: 'Telecel', commission_rate: 0.05 });
+      setNewOperator({ name: 'Telecel', commission_rate: 5 });
       fetchOperators();
     } catch (error: any) {
       setAddError(error.message || "Erreur lors de l'ajout de l'opérateur.");
@@ -188,11 +201,11 @@ export default function OperatorsPage() {
                           <input
                             type="number"
                             min="0"
-                            max="0.5"
-                            step="0.001"
+                            max="50"
+                            step="0.1"
                             className="w-24 border border-gray-300 rounded-md shadow-sm py-1 px-2 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                             value={editValues.commission_rate}
-                            onChange={(e) => setEditValues({...editValues, commission_rate: parseFloat(e.target.value)})}
+                            onChange={(e) => setEditValues({...editValues, commission_rate: parseFloat(e.target.value) || 0})}
                           />
                         ) : (
                           formatPercent(operator.commission_rate)
@@ -262,11 +275,11 @@ export default function OperatorsPage() {
                       type="number"
                       id="commission"
                       min="0"
-                      max="0.5"
-                      step="0.001"
+                      max="50"
+                      step="0.1"
                       className="focus:ring-green-500 focus:border-green-500 block w-full pr-12 sm:text-sm border-gray-300 rounded-md"
                       value={newOperator.commission_rate}
-                      onChange={e => setNewOperator({ ...newOperator, commission_rate: parseFloat(e.target.value) })}
+                      onChange={e => setNewOperator({ ...newOperator, commission_rate: parseFloat(e.target.value) || 0 })}
                       required
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
