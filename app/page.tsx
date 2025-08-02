@@ -696,9 +696,6 @@ export default function Home() {
               <p className="text-center text-base text-gray-400">
                 &copy; {new Date().getFullYear()} Yamdata. Tous droits réservés.
               </p>
-              <p className="text-center text-sm text-gray-400 mt-2">
-                Fondateur : Mr Nagalo William
-              </p>
             </div>
           </div>
         </div>

@@ -27,7 +27,7 @@ export default function OperatorsPage() {
   });
   const [newOperator, setNewOperator] = useState({
     name: 'Telecel',
-    commission_rate: 0.05
+    commission_rate: 5
   });
 
   useEffect(() => {
@@ -55,17 +55,26 @@ export default function OperatorsPage() {
     setEditingId(operator.id);
     setEditValues({
       name: operator.name,
-      commission_rate: operator.commission_rate
+      commission_rate: operator.commission_rate * 100 // Convertir en pourcentage pour affichage
     });
   }
 
   async function saveChanges(id: number) {
     try {
+      // Validation
+      if (editValues.commission_rate < 0 || editValues.commission_rate > 50) {
+        alert('Le taux de commission doit être entre 0% et 50%');
+        return;
+      }
+      
+      // Convertir le pourcentage en décimal
+      const commissionRateDecimal = editValues.commission_rate / 100;
+      
       const { error } = await supabase
         .from('telecom_operators')
         .update({
           name: editValues.name,
-          commission_rate: editValues.commission_rate
+          commission_rate: commissionRateDecimal
         })
         .eq('id', id);
 
@@ -82,24 +91,58 @@ export default function OperatorsPage() {
     setAddError(null);
     setAddSuccess(null);
     setAddLoading(true);
+    
+    console.log('[DEBUG] Tentative d\'ajout d\'opérateur:', newOperator);
+    
     try {
-      if (!newOperator.name || newOperator.commission_rate < 0) {
-        setAddError('Veuillez remplir tous les champs correctement.');
+      if (!newOperator.name) {
+        setAddError('Le nom de l\'opérateur est requis.');
         setAddLoading(false);
         return;
       }
-      const { error } = await supabase
+      if (newOperator.commission_rate < 0 || newOperator.commission_rate > 50) {
+        setAddError('Le taux de commission doit être entre 0% et 50%.');
+        setAddLoading(false);
+        return;
+      }
+      
+      // Vérifier si l'opérateur existe déjà
+      const { data: existingOperators } = await supabase
+        .from('telecom_operators')
+        .select('name')
+        .eq('name', newOperator.name);
+      
+      if (existingOperators && existingOperators.length > 0) {
+        setAddError('Un opérateur avec ce nom existe déjà.');
+        setAddLoading(false);
+        return;
+      }
+      
+      // Convertir le pourcentage en décimal
+      const commissionRateDecimal = newOperator.commission_rate / 100;
+      
+      console.log('[DEBUG] Insertion opérateur avec taux décimal:', commissionRateDecimal);
+      
+      const { data, error } = await supabase
         .from('telecom_operators')
         .insert({
           name: newOperator.name,
-          commission_rate: newOperator.commission_rate
-        });
+          commission_rate: commissionRateDecimal
+        })
+        .select();
+      
+      console.log('[DEBUG] Résultat insertion opérateur:', { data, error });
+      
       if (error) throw error;
+      
       setAddSuccess('Opérateur ajouté avec succès !');
-      setShowAddModal(false);
-      setNewOperator({ name: 'Telecel', commission_rate: 0.05 });
-      fetchOperators();
+      setTimeout(() => {
+        setShowAddModal(false);
+        setNewOperator({ name: 'Telecel', commission_rate: 5 });
+        fetchOperators();
+      }, 1500);
     } catch (error: any) {
+      console.error('[DEBUG] Erreur lors de l\'ajout d\'opérateur:', error);
       setAddError(error.message || "Erreur lors de l'ajout de l'opérateur.");
     } finally {
       setAddLoading(false);
@@ -118,14 +161,14 @@ export default function OperatorsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold text-gray-900">Gestion des Opérateurs</h1>
-        <button
+        {/* <button
           onClick={() => setShowAddModal(true)}
           type="button"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none"
+          className=" hidden inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
           Ajouter un opérateur
-        </button>
+        </button> */}
       </div>
 
       <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -188,11 +231,11 @@ export default function OperatorsPage() {
                           <input
                             type="number"
                             min="0"
-                            max="0.5"
-                            step="0.001"
+                            max="50"
+                            step="0.1"
                             className="w-24 border border-gray-300 rounded-md shadow-sm py-1 px-2 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                             value={editValues.commission_rate}
-                            onChange={(e) => setEditValues({...editValues, commission_rate: parseFloat(e.target.value)})}
+                            onChange={(e) => setEditValues({...editValues, commission_rate: parseFloat(e.target.value) || 0})}
                           />
                         ) : (
                           formatPercent(operator.commission_rate)
@@ -235,7 +278,7 @@ export default function OperatorsPage() {
       {/* Modal d'ajout d'opérateur */}
       {showAddModal && (
         <div className="fixed inset-0 overflow-y-auto z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowAddModal(false)}></div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full p-6">
@@ -262,11 +305,11 @@ export default function OperatorsPage() {
                       type="number"
                       id="commission"
                       min="0"
-                      max="0.5"
-                      step="0.001"
+                      max="50"
+                      step="0.1"
                       className="focus:ring-green-500 focus:border-green-500 block w-full pr-12 sm:text-sm border-gray-300 rounded-md"
                       value={newOperator.commission_rate}
-                      onChange={e => setNewOperator({ ...newOperator, commission_rate: parseFloat(e.target.value) })}
+                      onChange={e => setNewOperator({ ...newOperator, commission_rate: parseFloat(e.target.value) || 0 })}
                       required
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -280,7 +323,7 @@ export default function OperatorsPage() {
                 <div className="flex justify-end space-x-2 mt-4">
                   <button
                     type="button"
-                    className="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:w-auto sm:text-sm"
+                    className="hidden  inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:w-auto sm:text-sm"
                     onClick={() => setShowAddModal(false)}
                     disabled={addLoading}
                   >

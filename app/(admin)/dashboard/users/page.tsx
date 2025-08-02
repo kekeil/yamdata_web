@@ -27,10 +27,12 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [addLoading, setAddLoading] = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
-  const [addSuccess, setAddSuccess] = useState<string | null>(null);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userLoading, setUserLoading] = useState(false);
+  const [userError, setUserError] = useState<string | null>(null);
+  const [userSuccess, setUserSuccess] = useState<string | null>(null);
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -86,64 +88,174 @@ export default function UsersPage() {
     }
   }
 
-  async function handleAddUser(e: React.FormEvent) {
+  // Ouvrir le modal pour ajouter un utilisateur
+  function openAddUserModal() {
+    setIsEditMode(false);
+    setEditingUser(null);
+    setForm({
+      email: '',
+      password: '',
+      full_name: '',
+      phone: '',
+      role: 'user',
+    });
+    setUserError(null);
+    setUserSuccess(null);
+    setShowUserModal(true);
+  }
+
+  // Ouvrir le modal pour modifier un utilisateur
+  function startEditUser(user: User) {
+    console.log('[DEBUG] Début édition utilisateur:', user);
+    setIsEditMode(true);
+    setEditingUser(user);
+    setForm({
+      email: user.email || '',
+      password: '', // Pas de mot de passe en mode édition
+      full_name: user.full_name || '',
+      phone: user.phone || '',
+      role: user.user_roles?.[0]?.roles?.name || 'user',
+    });
+    setUserError(null);
+    setUserSuccess(null);
+    setShowUserModal(true);
+  }
+
+  async function handleUserSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setAddError(null);
-    setAddSuccess(null);
-    setAddLoading(true);
+    setUserError(null);
+    setUserSuccess(null);
+    setUserLoading(true);
     try {
-      // 1. Créer l'utilisateur dans auth
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          data: {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setUserError('Session expirée, veuillez vous reconnecter.');
+        return;
+      }
+
+      if (isEditMode && editingUser) {
+        // MODE ÉDITION
+        console.log('[DEBUG] Mode édition pour:', editingUser.id);
+        
+        // 1. Mettre à jour le profil
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            email: form.email,
             full_name: form.full_name,
             phone: form.phone,
-          },
-        },
-      });
-      if (signUpError) throw signUpError;
-      const userId = signUpData.user?.id;
-      if (!userId) throw new Error("Utilisateur non créé côté auth.");
-      // 2. Créer le profil (si non créé automatiquement)
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: userId,
+          })
+          .eq('id', editingUser.id);
+
+        if (profileError) throw profileError;
+
+        // 2. Mettre à jour le rôle si changé
+        const currentRole = editingUser.user_roles?.[0]?.roles?.name;
+        if (currentRole !== form.role) {
+          // Supprimer l'ancien rôle
+          await supabase
+            .from('user_roles')
+            .delete()
+            .eq('user_id', editingUser.id);
+
+          // Ajouter le nouveau rôle
+          const { data: roleData, error: roleError } = await supabase
+            .from('roles')
+            .select('id')
+            .eq('name', form.role)
+            .single();
+
+          if (roleError) throw roleError;
+
+          const { error: userRoleError } = await supabase
+            .from('user_roles')
+            .insert({ user_id: editingUser.id, role_id: roleData.id });
+
+          if (userRoleError) throw userRoleError;
+        }
+
+        setUserSuccess('Utilisateur modifié avec succès !');
+      } else {
+        // MODE CRÉATION
+        console.log('[DEBUG] Mode création');
+        
+        // 1. Créer l'utilisateur dans auth
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: form.email,
-          full_name: form.full_name,
-          phone: form.phone,
+          password: form.password,
+          options: {
+            data: {
+              full_name: form.full_name,
+              phone: form.phone,
+            },
+          },
         });
-      if (profileError) throw profileError;
-      // 3. Attribuer le rôle
-      const { data: roleData, error: roleError } = await supabase
-        .from('roles')
-        .select('id')
-        .eq('name', form.role)
-        .single();
-      if (roleError) throw roleError;
-      const { error: userRoleError } = await supabase
-        .from('user_roles')
-        .insert({ user_id: userId, role_id: roleData.id });
-      if (userRoleError) throw userRoleError;
-      setAddSuccess('Utilisateur créé avec succès !');
-      setForm({ email: '', password: '', full_name: '', phone: '', role: 'user' });
-      setShowAddModal(false);
-      fetchUsers();
+        if (signUpError) throw signUpError;
+        const userId = signUpData.user?.id;
+        if (!userId) throw new Error("Utilisateur non créé côté auth.");
+        
+        // 2. Créer le profil (si non créé automatiquement)
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            email: form.email,
+            full_name: form.full_name,
+            phone: form.phone,
+          });
+        if (profileError) throw profileError;
+        
+        // 3. Attribuer le rôle
+        const { data: roleData, error: roleError } = await supabase
+          .from('roles')
+          .select('id')
+          .eq('name', form.role)
+          .single();
+        if (roleError) throw roleError;
+        const { error: userRoleError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: userId, role_id: roleData.id });
+        if (userRoleError) throw userRoleError;
+
+        setUserSuccess('Utilisateur créé avec succès !');
+      }
+
+      // Fermer le modal et recharger la liste après un délai
+      setTimeout(() => {
+        setShowUserModal(false);
+        setEditingUser(null);
+        setIsEditMode(false);
+        fetchUsers();
+      }, 1500);
     } catch (error: any) {
-      setAddError(error.message || 'Erreur lors de la création de l\'utilisateur.');
+      console.error('[DEBUG] Erreur:', error);
+      setUserError(error.message || `Erreur lors de ${isEditMode ? 'la modification' : 'la création'} de l'utilisateur.`);
     } finally {
-      setAddLoading(false);
+      setUserLoading(false);
     }
   }
 
-  async function handleDeleteUser(userId) {
+  async function handleDeleteUser(userId: string) {
     if (!window.confirm("Supprimer cet utilisateur ?")) return;
-    const { error } = await supabase.from('profiles').delete().eq('id', userId);
-    if (!error) fetchUsers();
-    else alert("Erreur lors de la suppression");
+    
+    try {
+      console.log('[DEBUG] Suppression utilisateur:', userId);
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
+      
+      if (error) {
+        console.error('[DEBUG] Erreur suppression:', error);
+        alert("Erreur lors de la suppression: " + error.message);
+      } else {
+        console.log('[DEBUG] Suppression réussie');
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error('[DEBUG] Erreur inattendue:', error);
+      alert("Erreur inattendue lors de la suppression");
+    }
   }
+
+
 
   const filteredUsers = users.filter(user => 
     user.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -155,28 +267,44 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold text-gray-900">Gestion des Utilisateurs</h1>
-        <button
-          type="button"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none"
-          onClick={() => setShowAddModal(true)}
-        >
-          <span className="h-5 w-5 mr-2" role="img" aria-label="ajouter">➕</span>
-          Ajouter un utilisateur
-        </button>
+        <div className="flex space-x-2">
+          <button
+            type="button"
+            className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+            onClick={() => {
+              console.log('[TEST] État actuel:');
+              console.log('- Nombre d\'utilisateurs:', users.length);
+              console.log('- Utilisateurs:', users.map(u => ({ id: u.id, email: u.email })));
+              alert(`${users.length} utilisateurs trouvés. Voir console pour détails.`);
+            }}
+          >
+            Test État
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none"
+            onClick={openAddUserModal}
+          >
+            <span className="h-5 w-5 mr-2" role="img" aria-label="ajouter">➕</span>
+            Ajouter un utilisateur
+          </button>
+        </div>
       </div>
 
-      {/* Modal d'ajout d'utilisateur (amélioré) */}
-      {showAddModal && (
+      {/* Modal unifié pour ajouter/modifier un utilisateur */}
+      {showUserModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Overlay semi-transparent allégé */}
-          <div
-            className="absolute inset-0 bg-black bg-opacity-20 transition-opacity"
-            onClick={() => setShowAddModal(false)}
-          />
-          {/* Contenu de la modale */}
-          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-auto z-10 p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Ajouter un utilisateur</h2>
-            <form onSubmit={handleAddUser} className="space-y-4">
+                      <div
+              className="absolute inset-0 bg-black bg-opacity-20 transition-opacity"
+              onClick={() => setShowUserModal(false)}
+            />
+            {/* Contenu de la modale */}
+            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-auto z-10 p-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                {isEditMode ? 'Modifier l\'utilisateur' : 'Ajouter un utilisateur'}
+              </h2>
+              <form onSubmit={handleUserSubmit} className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
                 <input
@@ -188,18 +316,21 @@ export default function UsersPage() {
                   required
                 />
               </div>
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Mot de passe</label>
-                <input
-                  type="password"
-                  id="password"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                  value={form.password}
-                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                  required
-                  minLength={6}
-                />
-              </div>
+                              {/* Mot de passe uniquement en mode création */}
+                {!isEditMode && (
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700">Mot de passe</label>
+                    <input
+                      type="password"
+                      id="password"
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                      value={form.password}
+                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                )}
               <div>
                 <label htmlFor="full_name" className="block text-sm font-medium text-gray-700">Nom complet</label>
                 <input
@@ -236,29 +367,31 @@ export default function UsersPage() {
                   ))}
                 </select>
               </div>
-              {addError && <div className="text-sm text-red-600">{addError}</div>}
-              {addSuccess && <div className="text-sm text-green-600">{addSuccess}</div>}
-              <div className="flex justify-end space-x-2 mt-4">
-                <button
-                  type="button"
-                  className="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:w-auto sm:text-sm"
-                  onClick={() => setShowAddModal(false)}
-                  disabled={addLoading}
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:w-auto sm:text-sm disabled:opacity-50"
-                  disabled={addLoading}
-                >
-                  {addLoading ? 'Création...' : 'Créer'}
-                </button>
-              </div>
+                              {userError && <div className="text-sm text-red-600">{userError}</div>}
+                {userSuccess && <div className="text-sm text-green-600">{userSuccess}</div>}
+                              <div className="flex justify-end space-x-2 mt-4">
+                  <button
+                    type="button"
+                    className="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:w-auto sm:text-sm"
+                    onClick={() => setShowUserModal(false)}
+                    disabled={userLoading}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:w-auto sm:text-sm disabled:opacity-50"
+                    disabled={userLoading}
+                  >
+                    {userLoading ? (isEditMode ? 'Modification...' : 'Création...') : (isEditMode ? 'Modifier' : 'Créer')}
+                  </button>
+                </div>
             </form>
           </div>
         </div>
       )}
+
+
 
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="p-4 border-b border-gray-200">
@@ -336,12 +469,17 @@ export default function UsersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                        <a href={`/dashboard/users/${user.id}`} className="text-indigo-600 hover:text-indigo-900">
+                        <button
+                          className="text-indigo-600 hover:text-indigo-900"
+                          onClick={() => startEditUser(user)}
+                          title="Modifier l'utilisateur"
+                        >
                           <span className="h-5 w-5" role="img" aria-label="éditer">✏️</span>
-                        </a>
+                        </button>
                         <button
                           className="text-red-600 hover:text-red-900"
                           onClick={() => handleDeleteUser(user.id)}
+                          title="Supprimer l'utilisateur"
                         >
                           <span className="h-5 w-5" role="img" aria-label="supprimer">🗑️</span>
                         </button>
