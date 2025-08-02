@@ -468,14 +468,14 @@ export default function DataPlansPage() {
 
       {/* Modal d'ajout de forfait */}
       {showAddModal && (
-        <div className="fixed inset-0 overflow-y-auto z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowAddModal(false)}></div>
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">Ajouter un nouveau forfait</h3>
-              <form onSubmit={e => { e.preventDefault(); handleAddPlan(); }} className="space-y-4">
-                <div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-gray-500 bg-opacity-75">
+        <div 
+          className="relative bg-white rounded-lg shadow-xl mx-4 p-6 w-full max-w-lg"
+          onClick={e => e.stopPropagation()} // Empêche la fermeture quand on clique à l'intérieur
+        >
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Ajouter un nouveau forfait</h3>
+          <form onSubmit={e => { e.preventDefault(); handleAddPlan(); }} className="space-y-4">
+           <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nom</label>
                   <input
                     type="text"
@@ -556,10 +556,9 @@ export default function DataPlansPage() {
                     {addLoading ? 'Création...' : 'Créer'}
                   </button>
                 </div>
-              </form>
-            </div>
-          </div>
+                </form>
         </div>
+      </div>
       )}
     </div>
   );
