@@ -161,14 +161,14 @@ export default function OperatorsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold text-gray-900">Gestion des Opérateurs</h1>
-        <button
+        {/* <button
           onClick={() => setShowAddModal(true)}
           type="button"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none"
+          className=" hidden inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
           Ajouter un opérateur
-        </button>
+        </button> */}
       </div>
 
       <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -278,7 +278,7 @@ export default function OperatorsPage() {
       {/* Modal d'ajout d'opérateur */}
       {showAddModal && (
         <div className="fixed inset-0 overflow-y-auto z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowAddModal(false)}></div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
             <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full p-6">
@@ -323,7 +323,7 @@ export default function OperatorsPage() {
                 <div className="flex justify-end space-x-2 mt-4">
                   <button
                     type="button"
-                    className="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:w-auto sm:text-sm"
+                    className="hidden  inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:w-auto sm:text-sm"
                     onClick={() => setShowAddModal(false)}
                     disabled={addLoading}
                   >
