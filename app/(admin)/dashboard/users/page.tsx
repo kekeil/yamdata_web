@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import Link from 'next/link';
+import { useOptimizedAuth } from '@/lib/hooks/useOptimizedAuth';
 
 interface User {
   id: string;
@@ -24,6 +25,12 @@ const ROLES = [
 ];
 
 export default function UsersPage() {
+  // Authentification optimisée sans vérification redondante de session
+  const { isLoading: authLoading } = useOptimizedAuth({ 
+    requireAuth: true, 
+    requireAdmin: true 
+  });
+  
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,22 +47,16 @@ export default function UsersPage() {
   });
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    // Ne charger les données que si l'authentification est terminée
+    if (!authLoading) {
+      fetchUsers();
+    }
+  }, [authLoading]);
 
   async function fetchUsers() {
     try {
       setLoading(true);
-      console.log('[AUTH DEBUG][UsersPage] Début de la récupération des utilisateurs');
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('[AUTH DEBUG][UsersPage] Session:', session);
-      
-      if (!session) {
-        console.log('[AUTH DEBUG][UsersPage] Pas de session, redirection vers /login');
-        window.location.href = '/login';
-        return;
-      }
+      console.log('[OPTIMIZED][UsersPage] Début de la récupération des utilisateurs');
 
       const { data, error } = await supabase
         .from('profiles')
@@ -73,14 +74,14 @@ export default function UsersPage() {
         `);
 
       if (error) {
-        console.error('[AUTH DEBUG][UsersPage] Erreur Supabase:', error, error.message, error.details, error.hint);
+        console.error('[OPTIMIZED][UsersPage] Erreur Supabase:', error);
         throw error;
       }
       
-      console.log('[AUTH DEBUG][UsersPage] Utilisateurs récupérés:', data);
+      console.log('[OPTIMIZED][UsersPage] Utilisateurs récupérés:', data?.length || 0, 'utilisateurs');
       setUsers(data || []);
     } catch (error) {
-      console.error('[AUTH DEBUG][UsersPage] Erreur lors de la récupération des utilisateurs:', error);
+      console.error('[OPTIMIZED][UsersPage] Erreur lors de la récupération des utilisateurs:', error);
     } finally {
       setLoading(false);
     }
@@ -138,7 +139,7 @@ export default function UsersPage() {
     }
   }
 
-  async function handleDeleteUser(userId) {
+  async function handleDeleteUser(userId: string) {
     if (!window.confirm("Supprimer cet utilisateur ?")) return;
     const { error } = await supabase.from('profiles').delete().eq('id', userId);
     if (!error) fetchUsers();

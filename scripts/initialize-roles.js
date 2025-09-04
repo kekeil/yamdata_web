@@ -4,7 +4,7 @@
  * 
  * IMPORTANT: Vous devez avoir ajouté SUPABASE_SERVICE_ROLE_KEY dans votre fichier .env
  */
-
+'use client';
 // Charger les variables d'environnement
 require('dotenv').config({ path: '.env' });
 

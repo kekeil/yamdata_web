@@ -1,3 +1,4 @@
+"use client";
 import { create } from 'zustand';
 import { supabase } from '../supabase/client';
 import { SavingsAccount, SavingsGoal, SavingsSettings, UserSavingsSummary } from '@/types/db';

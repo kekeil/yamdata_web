@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useAuthStore } from '@/lib/store/authStore';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -15,19 +15,23 @@ export default function AuthProvider({
   const pathname = usePathname();
   const router = useRouter();
 
-  // Vérifier la session au chargement de l'application
+  // Mémoriser les vérifications pour éviter les re-renders inutiles
+  const isDashboardRoute = useMemo(() => pathname.startsWith('/dashboard'), [pathname]);
+  const isLoginRoute = useMemo(() => pathname === '/login', [pathname]);
+
+  // Vérifier la session au chargement de l'application une seule fois
   useEffect(() => {
     console.log('[AUTH DEBUG][useEffect-montage] Appel checkSession');
     checkSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    console.log('[AUTH DEBUG][useEffect-redirection] user:', user, 'isAdmin:', isAdmin, 'isLoading:', isLoading, 'pathname:', pathname);
+  // Mémoriser les redirections pour éviter les re-calculs
+  const handleRedirections = useCallback(() => {
     if (isLoading || typeof user === 'undefined') return;
 
     // Redirection pour les routes dashboard
-    if (pathname.startsWith('/dashboard')) {
+    if (isDashboardRoute) {
       if (!user && pathname !== '/login') {
         console.log('[AUTH DEBUG][redirect] Pas de user, redirection vers /login');
         router.replace('/login');
@@ -41,12 +45,19 @@ export default function AuthProvider({
     }
 
     // Redirection pour la page de login
-    if (pathname === '/login' && user && isAdmin) {
+    if (isLoginRoute && user && isAdmin) {
       console.log('[AUTH DEBUG][redirect] User admin connecté sur /login, redirection vers /dashboard/overview');
       router.replace('/dashboard/overview');
       return;
     }
-  }, [user, isAdmin, isLoading, pathname, router]);
+  }, [user, isAdmin, isLoading, isDashboardRoute, isLoginRoute, pathname, router]);
+
+  useEffect(() => {
+    handleRedirections();
+  }, [handleRedirections]);
+
+  console.log("SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL);
+  console.log("SUPABASE_KEY", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   return <>{children}</>;
 } 

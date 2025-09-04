@@ -536,7 +536,88 @@ CREATE TRIGGER on_auth_user_updated
   FOR EACH ROW EXECUTE FUNCTION public.handle_user_update();
 
 ----------------------------------------------------------------------
--- 11. POLITIQUES DE SÉCURITÉ (RLS)
+-- 11. TABLE DE PRÉINSCRIPTION
+----------------------------------------------------------------------
+
+-- Table pour les préinscriptions avant le lancement officiel
+CREATE TABLE public.preregistrations (
+  id BIGSERIAL PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+  full_name TEXT NOT NULL CHECK (length(full_name) >= 2),
+  phone TEXT CHECK (phone IS NULL OR length(phone) >= 8),
+  interested_features TEXT[] DEFAULT '{}',
+  referral_source TEXT CHECK (referral_source IN ('social_media', 'friend', 'web_search', 'advertisement', 'other')),
+  marketing_consent BOOLEAN NOT NULL DEFAULT false,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'contacted', 'registered', 'unsubscribed')),
+  priority_score INTEGER DEFAULT 0 CHECK (priority_score >= 0),
+  notes TEXT,
+  ip_address INET,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TRIGGER trg_preregistrations_updated_at
+BEFORE UPDATE ON public.preregistrations
+FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+-- Indexation pour les préinscriptions
+CREATE INDEX idx_preregistrations_email ON public.preregistrations(email);
+CREATE INDEX idx_preregistrations_status ON public.preregistrations(status);
+CREATE INDEX idx_preregistrations_created_at ON public.preregistrations(created_at);
+CREATE INDEX idx_preregistrations_priority ON public.preregistrations(priority_score DESC);
+
+-- Fonction pour calculer le score de priorité automatiquement
+CREATE OR REPLACE FUNCTION calculate_preregistration_priority()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Score de base
+  NEW.priority_score := 10;
+  
+  -- Bonus pour le consentement marketing
+  IF NEW.marketing_consent THEN
+    NEW.priority_score := NEW.priority_score + 20;
+  END IF;
+  
+  -- Bonus pour le téléphone fourni
+  IF NEW.phone IS NOT NULL AND length(NEW.phone) >= 8 THEN
+    NEW.priority_score := NEW.priority_score + 15;
+  END IF;
+  
+  -- Bonus pour les fonctionnalités d'intérêt
+  IF array_length(NEW.interested_features, 1) > 0 THEN
+    NEW.priority_score := NEW.priority_score + (array_length(NEW.interested_features, 1) * 5);
+  END IF;
+  
+  -- Bonus pour le parrainage
+  IF NEW.referral_source = 'friend' THEN
+    NEW.priority_score := NEW.priority_score + 25;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_calculate_preregistration_priority
+BEFORE INSERT OR UPDATE ON public.preregistrations
+FOR EACH ROW EXECUTE FUNCTION calculate_preregistration_priority();
+
+-- Vue pour les statistiques de préinscription
+CREATE VIEW preregistration_stats AS
+SELECT
+  count(*) as total_preregistrations,
+  count(*) FILTER (WHERE status = 'pending') as pending_count,
+  count(*) FILTER (WHERE marketing_consent = true) as marketing_consent_count,
+  count(*) FILTER (WHERE phone IS NOT NULL) as with_phone_count,
+  avg(priority_score) as average_priority_score,
+  count(*) FILTER (WHERE referral_source = 'friend') as friend_referrals,
+  count(*) FILTER (WHERE referral_source = 'social_media') as social_media_referrals,
+  count(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') as last_week_registrations,
+  count(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '30 days') as last_month_registrations
+FROM preregistrations;
+
+----------------------------------------------------------------------
+-- 12. POLITIQUES DE SÉCURITÉ (RLS)
 ----------------------------------------------------------------------
 
 -- Activer RLS sur toutes les tables
@@ -551,6 +632,7 @@ ALTER TABLE public.user_savings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subscriptions_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.preregistrations ENABLE ROW LEVEL SECURITY;
 
 -- Politiques pour profils
 CREATE POLICY profiles_select_self ON public.profiles
@@ -636,6 +718,14 @@ CREATE POLICY transactions_admin ON public.transactions
 CREATE POLICY transactions_support_select ON public.transactions
   FOR SELECT USING (has_role(auth.uid(), 'support'));
 
+-- Politiques pour préinscriptions
+CREATE POLICY preregistrations_insert_public ON public.preregistrations
+  FOR INSERT WITH CHECK (true); -- Permettre à tous d'insérer
+CREATE POLICY preregistrations_admin ON public.preregistrations
+  FOR ALL USING (is_user_admin(auth.uid()));
+CREATE POLICY preregistrations_support_select ON public.preregistrations
+  FOR SELECT USING (has_role(auth.uid(), 'support'));
+
 ----------------------------------------------------------------------
 -- 12. VUES POUR SIMPLIFIER L'ACCÈS AUX DONNÉES
 ----------------------------------------------------------------------
@@ -679,3 +769,32 @@ LEFT JOIN subscriptions s ON dp.id = s.plan_id AND s.status = 'active'
 WHERE dp.active = true
 GROUP BY dp.id, op.name
 ORDER BY subscription_count DESC, dp.price ASC;
+
+-- Vue optimisée pour les statistiques du dashboard
+CREATE VIEW dashboard_stats AS
+SELECT
+  -- Nombre total d'utilisateurs
+  (SELECT COUNT(*) FROM profiles) as users_count,
+  
+  -- Montant total d'épargne
+  (SELECT COALESCE(SUM(balance), 0) FROM user_savings) as total_savings,
+  
+  -- Nombre total de transactions
+  (SELECT COUNT(*) FROM transactions) as transactions_count,
+  
+  -- Moyenne d'épargne par transaction
+  (SELECT COALESCE(AVG(net_saving), 0) FROM transactions) as average_saving,
+  
+  -- Nombre d'opérateurs
+  (SELECT COUNT(*) FROM telecom_operators WHERE active = true) as operators_count,
+  
+  -- Nombre de forfaits
+  (SELECT COUNT(*) FROM data_plans WHERE active = true) as plans_count,
+  
+  -- Transactions ce mois-ci
+  (SELECT COUNT(*) FROM transactions 
+   WHERE created_at >= date_trunc('month', CURRENT_DATE)) as transactions_this_month,
+   
+  -- Nouvel utilisateurs cette semaine
+  (SELECT COUNT(*) FROM profiles 
+   WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') as new_users_this_week;

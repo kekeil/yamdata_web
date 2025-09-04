@@ -5,7 +5,7 @@
  * IMPORTANT: N'utilisez ce client que pour les opérations administratives
  * qui nécessitent de contourner les politiques RLS
  */
-
+'use client';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 

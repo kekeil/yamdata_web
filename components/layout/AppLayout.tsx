@@ -1,3 +1,4 @@
+"use client";
 import { useSupabaseClient } from '@/lib/hooks/useSupabaseClient';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

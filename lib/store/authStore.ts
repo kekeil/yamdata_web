@@ -1,3 +1,4 @@
+"use client";
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../supabase/client';
@@ -38,31 +39,30 @@ export const useAuthStore = create<AuthState>()(
           console.log('[AUTH STORE][login] Résultat:', { data, error });
           if (error) throw error;
           if (data.user) {
-            // Vérifier si l'utilisateur est admin
-            const { data: isAdminResult, error: adminRoleError } = await supabase.rpc('is_user_admin', {
-              user_id_param: data.user.id
-            });
-            console.log('[AUTH STORE][login] Résultat isAdmin:', { isAdminResult, adminRoleError });
-            if (adminRoleError) {
-              console.error("Erreur vérification admin:", adminRoleError.message);
-            }
-            // Vérifier si l'utilisateur est support
-            const { data: isSupportResult, error: supportRoleError } = await supabase.rpc('has_role', {
-              user_id_param: data.user.id,
-              role_name_param: 'support'
-            });
-            console.log('[AUTH STORE][login] Résultat isSupport:', { isSupportResult, supportRoleError });
-            if (supportRoleError) {
-              console.error("Erreur vérification support:", supportRoleError.message);
-            }
+            // Récupérer tous les rôles en une seule requête optimisée
+            const { data: userRoles, error: rolesError } = await supabase
+              .from('user_roles')
+              .select(`
+                roles!inner (
+                  name
+                )
+              `)
+              .eq('user_id', data.user.id);
+            
+            console.log('[AUTH STORE][login] Rôles récupérés:', { userRoles, rolesError });
+            
+            const roleNames = userRoles?.map(ur => ur.roles?.name).filter(Boolean) || [];
+            const isAdmin = roleNames.includes('admin');
+            const isSupport = roleNames.includes('support');
+            
             set({ 
               user: data.user, 
-              isAdmin: !!isAdminResult,
-              isSupport: !!isSupportResult,
+              isAdmin,
+              isSupport,
               isLoading: false,
               error: null
             });
-            console.log('[AUTH STORE][login] Utilisateur connecté:', { user: data.user, isAdmin: !!isAdminResult, isSupport: !!isSupportResult });
+            console.log('[AUTH STORE][login] Utilisateur connecté:', { user: data.user, isAdmin, isSupport });
           }
         } catch (error: any) {
           set({ 
@@ -112,31 +112,30 @@ export const useAuthStore = create<AuthState>()(
             console.log('[AUTH STORE][checkSession] Pas de session.');
             return;
           }
-          // Vérifier si l'utilisateur est admin
-          const { data: isAdminResult, error: adminRoleError } = await supabase.rpc('is_user_admin', {
-            user_id_param: session.user.id
-          });
-          console.log('[AUTH STORE][checkSession] Résultat isAdmin:', { isAdminResult, adminRoleError });
-          if (adminRoleError) {
-            console.error("Erreur vérification admin (session):", adminRoleError.message);
-          }
-          // Vérifier si l'utilisateur est support
-          const { data: isSupportResult, error: supportRoleError } = await supabase.rpc('has_role', {
-            user_id_param: session.user.id,
-            role_name_param: 'support'
-          });
-          console.log('[AUTH STORE][checkSession] Résultat isSupport:', { isSupportResult, supportRoleError });
-          if (supportRoleError) {
-            console.error("Erreur vérification support (session):", supportRoleError.message);
-          }
+          // Récupérer tous les rôles en une seule requête optimisée
+          const { data: userRoles, error: rolesError } = await supabase
+            .from('user_roles')
+            .select(`
+              roles!inner (
+                name
+              )
+            `)
+            .eq('user_id', session.user.id);
+          
+          console.log('[AUTH STORE][checkSession] Rôles récupérés:', { userRoles, rolesError });
+          
+          const roleNames = userRoles?.map(ur => ur.roles?.name).filter(Boolean) || [];
+          const isAdmin = roleNames.includes('admin');
+          const isSupport = roleNames.includes('support');
+          
           set({ 
             user: session.user, 
-            isAdmin: !!isAdminResult,
-            isSupport: !!isSupportResult,
+            isAdmin,
+            isSupport,
             isLoading: false,
             error: null
           });
-          console.log('[AUTH STORE][checkSession] Utilisateur connecté:', { user: session.user, isAdmin: !!isAdminResult, isSupport: !!isSupportResult });
+          console.log('[AUTH STORE][checkSession] Utilisateur connecté:', { user: session.user, isAdmin, isSupport });
         } catch (error: any) {
           set({ 
             user: null, 

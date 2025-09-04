@@ -1,3 +1,5 @@
+'use server';
+
 import { NextResponse } from 'next/server';
 import { initializeAdmin } from '@/lib/init-admin';
 import { headers } from 'next/headers';

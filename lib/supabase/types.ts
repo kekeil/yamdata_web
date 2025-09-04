@@ -262,6 +262,56 @@ export interface Database {
           created_at?: string
         }
       }
+      preregistrations: {
+        Row: {
+          id: number
+          email: string
+          full_name: string
+          phone?: string | null
+          interested_features: string[]
+          referral_source?: string | null
+          marketing_consent: boolean
+          status: string
+          priority_score: number
+          notes?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          email: string
+          full_name: string
+          phone?: string | null
+          interested_features?: string[]
+          referral_source?: string | null
+          marketing_consent?: boolean
+          status?: string
+          priority_score?: number
+          notes?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          email?: string
+          full_name?: string
+          phone?: string | null
+          interested_features?: string[]
+          referral_source?: string | null
+          marketing_consent?: boolean
+          status?: string
+          priority_score?: number
+          notes?: string | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -292,6 +342,8 @@ export type UserRole = Database['public']['Tables']['user_roles']['Row']
 export type TelecomOperator = Database['public']['Tables']['telecom_operators']['Row']
 export type DataPlan = Database['public']['Tables']['data_plans']['Row']
 export type Subscription = Database['public']['Tables']['subscriptions']['Row']
+export type Preregistration = Database['public']['Tables']['preregistrations']['Row']
+export type PreregistrationInsert = Database['public']['Tables']['preregistrations']['Insert']
 export type SubscriptionHistory = Database['public']['Tables']['subscriptions_history']['Row']
 export type SavingType = Database['public']['Tables']['saving_types']['Row']
 export type SavingParameter = Database['public']['Tables']['saving_parameters']['Row']

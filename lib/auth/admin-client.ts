@@ -2,7 +2,7 @@
  * Client d'administration pour les opérations qui nécessitent de contourner les politiques RLS
  * Ce client est utilisé uniquement dans l'application côté client
  */
-
+"use client"
 import { supabase } from '../supabase/client';
 
 /**

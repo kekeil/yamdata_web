@@ -1,3 +1,4 @@
+"use client";
 import { supabase } from './client';
 import { redirect } from 'next/navigation';
 

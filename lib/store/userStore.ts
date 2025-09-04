@@ -1,3 +1,4 @@
+"use client";
 import { create } from 'zustand';
 import { supabase } from '../supabase/client';
 import { Profile } from '@/types/db';

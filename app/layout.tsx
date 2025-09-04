@@ -1,3 +1,4 @@
+import DebugEnv from "@/components/DebugEnv";
 import type { Metadata } from "next";
 import "./globals.css";
 import AuthProvider from "@/components/auth/AuthProvider";
@@ -15,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="fr" className="overflow-x-hidden">
       <body className="overflow-x-hidden">
+        <DebugEnv />
         <AuthProvider>
           {children}
         </AuthProvider>

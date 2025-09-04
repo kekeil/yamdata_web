@@ -1,3 +1,4 @@
+"use client";
 import { supabase } from './client';
 
 // Récupérer les utilisateurs avec leurs rôles

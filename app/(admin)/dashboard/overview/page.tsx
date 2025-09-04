@@ -44,80 +44,53 @@ export default function OverviewPage() {
     setLoading(true);
     setError(null);
     try {
-      // 1. Nombre total d'utilisateurs
-      const { count: usersCount, error: usersError } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-      if (usersError) throw usersError;
-
-      // 2. Montant total d'épargne
-      const { data: savingsData, error: savingsError } = await supabase
-        .from('user_savings')
-        .select('balance');
-      if (savingsError) throw savingsError;
-      const totalSavings = savingsData?.reduce((sum, item) => sum + Number(item.balance), 0) || 0;
-
-      // 3. Nombre total de transactions
-      const { count: transactionsCount, error: transactionsCountError } = await supabase
-        .from('transactions')
-        .select('*', { count: 'exact', head: true });
-      if (transactionsCountError) throw transactionsCountError;
-
-      // 4. Moyenne d'épargne par transaction
-      const { data: transactionsData, error: transactionsDataError } = await supabase
-        .from('transactions')
-        .select('net_saving');
-      if (transactionsDataError) throw transactionsDataError;
-      const totalNetSaving = transactionsData?.reduce((sum, item) => sum + Number(item.net_saving), 0) || 0;
-      const averageSaving = transactionsCount ? totalNetSaving / transactionsCount : 0;
-
-      // 5. Nombre d'opérateurs
-      const { count: operatorsCount, error: operatorsError } = await supabase
-        .from('telecom_operators')
-        .select('*', { count: 'exact', head: true });
-      if (operatorsError) throw operatorsError;
-
-      // 6. Nombre de forfaits
-      const { count: plansCount, error: plansError } = await supabase
-        .from('data_plans')
-        .select('*', { count: 'exact', head: true });
-      if (plansError) throw plansError;
+      // Récupérer toutes les statistiques en une seule requête optimisée
+      const { data: statsData, error: statsError } = await supabase
+        .from('dashboard_stats')
+        .select('*')
+        .single();
+      
+      if (statsError) throw statsError;
 
       setStats({
-        usersCount: usersCount || 0,
-        totalSavings,
-        transactionsCount: transactionsCount || 0,
-        averageSaving,
-        operatorsCount: operatorsCount || 0,
-        plansCount: plansCount || 0
+        usersCount: statsData.users_count || 0,
+        totalSavings: Number(statsData.total_savings) || 0,
+        transactionsCount: statsData.transactions_count || 0,
+        averageSaving: Number(statsData.average_saving) || 0,
+        operatorsCount: statsData.operators_count || 0,
+        plansCount: statsData.plans_count || 0
       });
 
-      // 7. Dernières transactions (5)
-      const { data: transactions, error: recentError } = await supabase
+      // Dernières transactions avec informations utilisateur en une seule requête
+      const { data: transactionsWithUser, error: recentError } = await supabase
         .from('transactions')
-        .select('id, user_id, amount_paid, net_saving, created_at')
+        .select(`
+          id, 
+          user_id, 
+          amount_paid, 
+          net_saving, 
+          created_at,
+          profiles!transactions_user_id_fkey (
+            email,
+            phone
+          )
+        `)
         .order('created_at', { ascending: false })
         .limit(5);
+      
       if (recentError) throw recentError;
 
-      let transactionsWithUser: RecentTransaction[] = [];
-      if (transactions && transactions.length > 0) {
-        const userIds = transactions.map(t => t.user_id);
-        const { data: users, error: usersError2 } = await supabase
-          .from('profiles')
-          .select('id, email, phone')
-          .in('id', userIds);
-        if (usersError2) throw usersError2;
-        transactionsWithUser = transactions.map(t => {
-          const user = users?.find(u => u.id === t.user_id);
-          return {
-            ...t,
-            email: user?.email,
-            phone: user?.phone
-          };
-        });
-      }
-      setRecentTransactions(transactionsWithUser);
+      const formattedTransactions: RecentTransaction[] = (transactionsWithUser || []).map(t => ({
+        id: t.id,
+        user_id: t.user_id,
+        amount_paid: t.amount_paid,
+        net_saving: t.net_saving,
+        created_at: t.created_at,
+        email: Array.isArray(t.profiles) ? t.profiles[0]?.email : t.profiles?.email,
+        phone: Array.isArray(t.profiles) ? t.profiles[0]?.phone : t.profiles?.phone
+      }));
+      
+      setRecentTransactions(formattedTransactions);
     } catch (err: any) {
       setError('Erreur lors du chargement du dashboard : ' + (err.message || err));
       setStats(null);

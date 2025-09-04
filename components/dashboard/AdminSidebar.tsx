@@ -9,12 +9,14 @@ import {
   CurrencyDollarIcon, 
   Cog6ToothIcon,
   BuildingOfficeIcon,
-  PhoneIcon
+  PhoneIcon,
+  UserPlusIcon
 } from '@heroicons/react/24/outline';
 
 const navigation = [
   { name: 'Vue d\'ensemble', href: '/dashboard/overview', icon: ChartBarIcon },
   { name: 'Utilisateurs', href: '/dashboard/users', icon: UsersIcon },
+  { name: 'Préinscriptions', href: '/dashboard/preregistrations', icon: UserPlusIcon },
   { name: 'Forfaits', href: '/dashboard/plans', icon: PhoneIcon },
   { name: 'Épargne', href: '/dashboard/savings', icon: CurrencyDollarIcon },
   { name: 'Opérateurs', href: '/dashboard/operators', icon: BuildingOfficeIcon },
