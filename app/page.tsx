@@ -21,6 +21,15 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showPreregForm, setShowPreregForm] = useState(false);
   
+  // État séparé pour le formulaire "Inscription express" en bas
+  const [expressFormData, setExpressFormData] = useState({
+    email: '',
+    fullName: ''
+  });
+  const [isExpressSubmitting, setIsExpressSubmitting] = useState(false);
+  const [expressSubmitStatus, setExpressSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [expressErrorMessage, setExpressErrorMessage] = useState<string>('');
+  
   // Récupération des statistiques de préinscription en temps réel
   const { stats, loading: statsLoading, error: statsError, refetch: refetchStats } = usePreregistrationStats();
 
@@ -119,6 +128,91 @@ export default function Home() {
       }, 7000);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleExpressFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsExpressSubmitting(true);
+    setExpressSubmitStatus('idle');
+    
+    try {
+      // Vérifier que l'email et le nom sont fournis
+      if (!expressFormData.email || !expressFormData.fullName) {
+        throw new Error('Email et nom sont requis');
+      }
+
+      // Récupérer l'adresse IP et user agent pour l'audit trail
+      const userAgent = navigator.userAgent;
+      
+      // Préparer les données pour Supabase
+      const preregistrationPayload = {
+        email: expressFormData.email.toLowerCase().trim(),
+        full_name: expressFormData.fullName.trim(),
+        phone: null,
+        interested_features: [],
+        referral_source: 'other', // Utiliser 'other' car 'express_form' n'est pas dans la liste autorisée
+        marketing_consent: true, // Par défaut true pour le formulaire express
+        status: 'pending' as const,
+        user_agent: userAgent,
+        notes: 'Inscription via formulaire express'
+      };
+
+      console.log('Envoi des données de préinscription express vers Supabase:', preregistrationPayload);
+
+      // Insérer dans Supabase
+      const { data, error } = await supabase
+        .from('preregistrations')
+        .insert([preregistrationPayload])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erreur Supabase lors de la préinscription express:', error);
+        
+        // Gestion spécifique des erreurs
+        if (error.code === '23505') { // Violation de contrainte unique (email déjà existant)
+          throw new Error('Cette adresse email est déjà enregistrée pour la préinscription.');
+        } else if (error.code === '23514') { // Violation de contrainte de validation
+          throw new Error('Les données fournies ne sont pas valides. Veuillez vérifier votre saisie.');
+        } else {
+          throw new Error('Une erreur s\'est produite lors de l\'enregistrement. Veuillez réessayer.');
+        }
+      }
+
+      console.log('Préinscription express réussie:', data);
+      
+      // Succès - réinitialiser le formulaire
+      setExpressSubmitStatus('success');
+      setExpressFormData({
+        email: '',
+        fullName: ''
+      });
+
+      // Actualiser les statistiques après une nouvelle préinscription
+      refetchStats();
+      
+      // Masquer le message de succès après 5 secondes
+      setTimeout(() => {
+        setExpressSubmitStatus('idle');
+      }, 5000);
+
+    } catch (error: any) {
+      console.error('Erreur lors de la préinscription express:', error);
+      setExpressSubmitStatus('error');
+      
+      // Afficher un message d'erreur plus spécifique si possible
+      const errorMsg = error.message || 'Une erreur inattendue s\'est produite. Veuillez réessayer.';
+      setExpressErrorMessage(errorMsg);
+      console.error('Message d\'erreur express:', errorMsg);
+
+      // Masquer le message d'erreur après 7 secondes
+      setTimeout(() => {
+        setExpressSubmitStatus('idle');
+        setExpressErrorMessage('');
+      }, 7000);
+    } finally {
+      setIsExpressSubmitting(false);
     }
   };
 
@@ -227,7 +321,7 @@ export default function Home() {
                           value={preregistrationData.email}
                           onChange={(e) => setPreregistrationData(prev => ({ ...prev, email: e.target.value }))}
                           required
-                          className="w-full px-4 py-2 rounded-lg border-0 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-green-300 focus:outline-none"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-600 focus:ring-2 focus:ring-white focus:border-white focus:outline-none shadow-sm"
                         />
                         <input
                           type="text"
@@ -235,14 +329,14 @@ export default function Home() {
                           value={preregistrationData.fullName}
                           onChange={(e) => setPreregistrationData(prev => ({ ...prev, fullName: e.target.value }))}
                           required
-                          className="w-full px-4 py-2 rounded-lg border-0 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-green-300 focus:outline-none"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-600 focus:ring-2 focus:ring-white focus:border-white focus:outline-none shadow-sm"
                         />
                         <input
                           type="tel"
                           placeholder="Votre téléphone (optionnel)"
                           value={preregistrationData.phone}
                           onChange={(e) => setPreregistrationData(prev => ({ ...prev, phone: e.target.value }))}
-                          className="w-full px-4 py-2 rounded-lg border-0 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-green-300 focus:outline-none"
+                          className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-600 focus:ring-2 focus:ring-white focus:border-white focus:outline-none shadow-sm"
                         />
                       </div>
                       
@@ -942,7 +1036,7 @@ export default function Home() {
             <p className="mt-4 max-w-3xl text-lg text-green-100">
               Les premiers inscrits bénéficieront d'avantages exclusifs : 
               <span className="font-medium text-white"> 3 mois gratuits</span> de frais de gestion et 
-              <span className="font-medium text-white"> 1000 FCFA offerts</span> pour votre première épargne.
+               pour votre première épargne.
             </p>
           </motion.div>
           <motion.div 
@@ -956,23 +1050,25 @@ export default function Home() {
               <h3 className="text-lg font-semibold text-white mb-4 text-center">
                 Inscription express
               </h3>
-              <form onSubmit={handlePreregistrationSubmit} className="space-y-4">
+              <form onSubmit={handleExpressFormSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 gap-3">
                   <input
                     type="email"
                     placeholder="Votre email"
-                    value={preregistrationData.email}
-                    onChange={(e) => setPreregistrationData(prev => ({ ...prev, email: e.target.value }))}
+                    value={expressFormData.email}
+                    onChange={(e) => setExpressFormData(prev => ({ ...prev, email: e.target.value }))}
                     required
-                    className="w-full px-4 py-3 rounded-lg border-0 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-white focus:outline-none"
+                    autoComplete="email"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-green-300 focus:border-green-500 focus:outline-none shadow-sm"
                   />
                   <input
                     type="text"
                     placeholder="Votre nom"
-                    value={preregistrationData.fullName}
-                    onChange={(e) => setPreregistrationData(prev => ({ ...prev, fullName: e.target.value }))}
+                    value={expressFormData.fullName}
+                    onChange={(e) => setExpressFormData(prev => ({ ...prev, fullName: e.target.value }))}
                     required
-                    className="w-full px-4 py-3 rounded-lg border-0 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-white focus:outline-none"
+                    autoComplete="name"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-green-300 focus:border-green-500 focus:outline-none shadow-sm"
                   />
                 </div>
                 
@@ -980,10 +1076,10 @@ export default function Home() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isExpressSubmitting}
                   className="w-full bg-white text-green-600 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
-                  {isSubmitting ? (
+                  {isExpressSubmitting ? (
                     <>
                       <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -1002,7 +1098,7 @@ export default function Home() {
                 </motion.button>
               </form>
 
-              {submitStatus === 'success' && (
+              {expressSubmitStatus === 'success' && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1013,14 +1109,14 @@ export default function Home() {
                 </motion.div>
               )}
 
-              {submitStatus === 'error' && (
+              {expressSubmitStatus === 'error' && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mt-4 p-3 bg-red-500 rounded-lg flex items-start text-white text-sm"
                 >
                   <ExclamationTriangleIcon className="h-4 w-4 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>{errorMessage || 'Erreur. Réessayez plus tard.'}</span>
+                  <span>{expressErrorMessage || 'Erreur. Réessayez plus tard.'}</span>
                 </motion.div>
               )}
               
@@ -1031,7 +1127,7 @@ export default function Home() {
           </motion.div>
           
           {/* Éléments décoratifs */}
-          <div className="hidden lg:block absolute top-0 right-0 -mt-20 -mr-20 opacity-10">
+          <div className="hidden lg:block absolute top-0 right-0 -mt-20 -mr-20 opacity-10 pointer-events-none">
             <svg width="404" height="404" fill="none" viewBox="0 0 404 404">
               <defs>
                 <pattern id="pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
