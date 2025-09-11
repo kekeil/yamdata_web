@@ -221,14 +221,14 @@ export default function Home() {
       {/* Navigation */}
       <nav className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-24 items-center">
+          <div className="flex justify-between h-32 items-center">
             <div className="flex-shrink-0 flex items-center">
               <Image
                 src="/logo.jpg" 
                 alt="Yamdata Logo" 
-                width={360} 
-                height={96} 
-                className="h-20 w-auto transition-all duration-300 hover:scale-105"
+                width={540} 
+                height={144} 
+                className="h-28 w-auto transition-all duration-300 hover:scale-105"
               />
             </div>
             <div className="hidden md:block">
@@ -408,7 +408,9 @@ export default function Home() {
                   </p>
                   <div className="flex justify-center lg:justify-start space-x-4">
                     <a 
-                      href="#" 
+                      href="https://www.facebook.com/share/1HnVg1pJxg/?mibextid=wwXIfr" 
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-green-600 hover:text-green-700 transition-colors duration-300"
                     >
                       <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -416,7 +418,9 @@ export default function Home() {
                       </svg>
                     </a>
                     <a 
-                      href="#" 
+                      href="https://www.instagram.com/yamdata?igsh=a3R0ZzI2eHV5MTBr&utm_source=qr" 
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-green-600 hover:text-green-700 transition-colors duration-300"
                     >
                       <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -424,11 +428,13 @@ export default function Home() {
                       </svg>
                     </a>
                     <a 
-                      href="#" 
+                      href="https://www.tiktok.com/@yamdata?_t=ZN-8zQRtfAtmoo&_r=1" 
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-green-600 hover:text-green-700 transition-colors duration-300"
                     >
                       <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
+                        <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
                       </svg>
                     </a>
                   </div>
@@ -1148,9 +1154,9 @@ export default function Home() {
               <Image 
                 src="/logo.jpg" 
                 alt="Yamdata Logo" 
-                width={130} 
-                height={35} 
-                className="h-10 w-auto mb-4"
+                width={220} 
+                height={59} 
+                className="h-16 w-auto mb-4"
               />
               <p className="text-gray-300 text-sm mt-2">
                 Yamdata transforme vos achats de forfaits internet en épargne intelligente.
@@ -1192,7 +1198,9 @@ export default function Home() {
             <div className="flex space-x-6 md:order-2">
               <motion.a 
                 whileHover={{ scale: 1.1, y: -2 }}
-                href="#" 
+                href="https://www.facebook.com/share/1HnVg1pJxg/?mibextid=wwXIfr" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-gray-400 hover:text-green-300 transition-colors duration-300"
               >
                 <span className="sr-only">Facebook</span>
@@ -1202,7 +1210,9 @@ export default function Home() {
               </motion.a>
               <motion.a 
                 whileHover={{ scale: 1.1, y: -2 }}
-                href="#" 
+                href="https://www.instagram.com/yamdata?igsh=a3R0ZzI2eHV5MTBr&utm_source=qr" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-gray-400 hover:text-green-300 transition-colors duration-300"
               >
                 <span className="sr-only">Instagram</span>
@@ -1212,12 +1222,14 @@ export default function Home() {
               </motion.a>
               <motion.a 
                 whileHover={{ scale: 1.1, y: -2 }}
-                href="#" 
+                href="https://www.tiktok.com/@yamdata?_t=ZN-8zQRtfAtmoo&_r=1" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-gray-400 hover:text-green-300 transition-colors duration-300"
               >
-                <span className="sr-only">Twitter</span>
+                <span className="sr-only">TikTok</span>
                 <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
                 </svg>
               </motion.a>
             </div>
