@@ -312,7 +312,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-green-50 to-green-100 py-8 sm:py-12 md:py-20 overflow-hidden">
+      <div className="bg-gradient-to-r from-green-50 to-green-100 py-16 md:py-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="lg:grid lg:grid-cols-12 lg:gap-8">
             <motion.div 
@@ -322,29 +322,32 @@ export default function Home() {
               className="text-center lg:text-left lg:col-span-6"
             >
               <h1>
-                <span className="block text-xs sm:text-sm font-semibold uppercase tracking-wide text-green-600">
+                <span className="block text-sm font-semibold uppercase tracking-wide text-green-600 text-left">
                   Une nouvelle façon d'épargner
                 </span>
-                <span className="mt-1 block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl tracking-tight font-extrabold">
-                  <span className="block text-gray-900">Connecte-toi,</span>
-                  <span className="block text-green-600">épargne, évolue.</span>
-                </span>
+                <div className="mt-1 flex items-center justify-start">
+                  <div className="flex flex-col items-start">
+                    <span className="block text-4xl lg:text-5xl xl:text-6xl tracking-tight font-extrabold text-gray-900">Connecte-toi,</span>
+                    <span className="block text-4xl lg:text-5xl xl:text-6xl tracking-tight font-extrabold text-green-600">épargne, évolue.</span>
+                  </div>
+                  <span className="text-6xl lg:text-7xl xl:text-8xl text-green-600 font-extrabold opacity-60 lg:hidden ml-4">✓</span>
+                </div>
               </h1>
-              <p className="mt-3 text-sm sm:text-base md:text-lg lg:text-lg xl:text-xl text-gray-500 max-w-2xl mx-auto lg:mx-0">
+              <p className="mt-3 text-lg lg:text-lg xl:text-xl text-gray-500 max-w-2xl text-left lg:mx-0">
                 Yamdata transforme <span className="text-green-600 font-semibold">vos</span> achats de forfaits internet en épargne intelligente. 
                 Achetez <span className="text-green-600 font-semibold">vos</span> données comme d'habitude et épargnez automatiquement à chaque transaction.
               </p>
-              <div className="mt-6 sm:mt-8 max-w-lg mx-auto lg:mx-0">
-                <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl text-white mb-4 sm:mb-6">
-                  <div className="flex items-center justify-center lg:justify-start mb-3 sm:mb-4">
+              <div className="mt-8 max-w-lg mx-auto lg:mx-0">
+                <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl p-6 shadow-xl text-white mb-6">
+                  <div className="flex items-center justify-center lg:justify-start mb-4">
                     <div className="inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs font-medium bg-green-500 text-white">
                       🚀 Lancement bientôt
                     </div>
                   </div>
-                  <h3 className="text-lg sm:text-xl font-bold mb-2 text-center lg:text-left">
+                  <h3 className="text-xl font-bold mb-2 text-center lg:text-left">
                     Soyez parmi les premiers !
                   </h3>
-                  <p className="text-green-100 text-xs sm:text-sm mb-3 sm:mb-4 text-center lg:text-left">
+                  <p className="text-green-100 text-sm mb-4 text-center lg:text-left">
                     Inscrivez-vous dès maintenant pour être notifié du lancement et bénéficier d'avantages exclusifs.
                   </p>
                   
