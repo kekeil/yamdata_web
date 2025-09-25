@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { PencilIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { useOptimizedPlans } from '@/lib/hooks/useOptimizedPlans';
+import Modal from '@/components/ui/Modal';
 
 interface DataPlan {
   id: number;
@@ -18,13 +20,22 @@ interface DataPlan {
 }
 
 export default function DataPlansPage() {
-  const [plans, setPlans] = useState<DataPlan[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { 
+    plans, 
+    operators, 
+    loading, 
+    error, 
+    addPlan, 
+    deletePlan, 
+    isAuthenticated, 
+    isAdmin, 
+    authLoading 
+  } = useOptimizedPlans();
+  
   const [showAddModal, setShowAddModal] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [addSuccess, setAddSuccess] = useState<string | null>(null);
-  const [operators, setOperators] = useState<{id: number, name: string}[]>([]);
   const [newPlan, setNewPlan] = useState({
     name: '',
     volume_mb: 1,
@@ -33,82 +44,13 @@ export default function DataPlansPage() {
     operator_id: 0
   });
 
+  // Initialiser l'opérateur par défaut
   useEffect(() => {
-    fetchPlans();
-    fetchOperators();
-  }, []);
-
-  async function fetchPlans() {
-    try {
-      setLoading(true);
-      console.log('[AUTH DEBUG][PlansPage] Début de la récupération des forfaits');
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('[AUTH DEBUG][PlansPage] Session:', session);
-      
-      if (!session) {
-        console.log('[AUTH DEBUG][PlansPage] Pas de session, redirection vers /login');
-        window.location.href = '/login';
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('data_plans')
-        .select(`
-          id,
-          name,
-          volume_mb,
-          price,
-          validity_days,
-          telecom_operators (
-            id,
-            name,
-            commission_rate
-          )
-        `);
-
-      if (error) {
-        console.error('[AUTH DEBUG][PlansPage] Erreur Supabase:', error);
-        throw error;
-      }
-      
-      console.log('[AUTH DEBUG][PlansPage] Forfaits récupérés:', data);
-      setPlans(data || []);
-    } catch (error) {
-      console.error('[AUTH DEBUG][PlansPage] Erreur lors de la récupération des forfaits:', error);
-    } finally {
-      setLoading(false);
+    if (operators.length > 0 && newPlan.operator_id === 0) {
+      setNewPlan(prev => ({ ...prev, operator_id: operators[0].id }));
     }
-  }
+  }, [operators, newPlan.operator_id]);
 
-  async function fetchOperators() {
-    try {
-      console.log('[AUTH DEBUG][PlansPage] Début de la récupération des opérateurs');
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('[AUTH DEBUG][PlansPage] Pas de session pour la récupération des opérateurs');
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('telecom_operators')
-        .select('id, name');
-
-      if (error) {
-        console.error('[AUTH DEBUG][PlansPage] Erreur Supabase (opérateurs):', error);
-        throw error;
-      }
-      
-      console.log('[AUTH DEBUG][PlansPage] Opérateurs récupérés:', data);
-      setOperators(data || []);
-      if (data && data.length > 0) {
-        setNewPlan(prev => ({ ...prev, operator_id: data[0].id }));
-      }
-    } catch (error) {
-      console.error('[AUTH DEBUG][PlansPage] Erreur lors de la récupération des opérateurs:', error);
-    }
-  }
 
   async function handleAddPlan() {
     setAddError(null);
@@ -120,22 +62,16 @@ export default function DataPlansPage() {
         setAddLoading(false);
         return;
       }
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setAddError('Session expirée, veuillez vous reconnecter.');
-        setAddLoading(false);
-        return;
-      }
-      const { error } = await supabase
-        .from('data_plans')
-        .insert({
-          name: newPlan.name,
-          volume_mb: newPlan.volume_mb,
-          price: newPlan.price,
-          validity_days: newPlan.validity_days,
-          operator_id: newPlan.operator_id
-        });
-      if (error) throw error;
+      
+      await addPlan({
+        name: newPlan.name.trim(),
+        volume_mb: newPlan.volume_mb,
+        price: newPlan.price,
+        validity_days: newPlan.validity_days,
+        operator_id: newPlan.operator_id,
+        active: true
+      });
+      
       setAddSuccess('Forfait ajouté avec succès !');
       setShowAddModal(false);
       setNewPlan({
@@ -145,7 +81,6 @@ export default function DataPlansPage() {
         validity_days: 30,
         operator_id: operators[0]?.id || 0
       });
-      fetchPlans();
     } catch (error: any) {
       setAddError(error.message || "Erreur lors de l'ajout du forfait.");
     } finally {
@@ -156,30 +91,30 @@ export default function DataPlansPage() {
   async function handleDeletePlan(id: number) {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce forfait?')) {
       try {
-        console.log('[AUTH DEBUG][PlansPage] Début de la suppression du forfait:', id);
-        
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          console.log('[AUTH DEBUG][PlansPage] Pas de session pour la suppression du forfait');
-          return;
-        }
-
-        const { error } = await supabase
-          .from('data_plans')
-          .delete()
-          .eq('id', id);
-
-        if (error) {
-          console.error('[AUTH DEBUG][PlansPage] Erreur Supabase (suppression):', error);
-          throw error;
-        }
-        
-        console.log('[AUTH DEBUG][PlansPage] Forfait supprimé avec succès');
-        fetchPlans();
+        await deletePlan(id);
       } catch (error) {
-        console.error('[AUTH DEBUG][PlansPage] Erreur lors de la suppression du forfait:', error);
+        console.error('Erreur lors de la suppression du forfait:', error);
       }
     }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-gray-900">Accès refusé</h1>
+          <p className="text-gray-500">Vous n'avez pas les permissions nécessaires.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -282,14 +217,13 @@ export default function DataPlansPage() {
       </div>
 
       {/* Modal d'ajout de forfait */}
-      {showAddModal && (
-        <div className="fixed inset-0 overflow-y-auto z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowAddModal(false)}></div>
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">Ajouter un nouveau forfait</h3>
-              <form onSubmit={e => { e.preventDefault(); handleAddPlan(); }} className="space-y-4">
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Ajouter un nouveau forfait"
+        size="lg"
+      >
+        <form onSubmit={e => { e.preventDefault(); handleAddPlan(); }} className="space-y-4">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nom</label>
                   <input
@@ -370,11 +304,8 @@ export default function DataPlansPage() {
                     {addLoading ? 'Création...' : 'Créer'}
                   </button>
                 </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+        </form>
+      </Modal>
     </div>
   );
 } 

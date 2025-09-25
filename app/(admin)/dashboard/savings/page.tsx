@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useOptimizedSavings } from '@/lib/hooks/useOptimizedSavings';
 
 interface SavingParameter {
   id: number;
@@ -23,13 +24,17 @@ interface SavingStats {
 }
 
 export default function SavingsPage() {
-  const [parameters, setParameters] = useState<SavingParameter[]>([]);
-  const [stats, setStats] = useState<SavingStats>({
-    totalUsers: 0,
-    totalSavings: 0,
-    averageSavingPerUser: 0
-  });
-  const [loading, setLoading] = useState(true);
+  const { 
+    parameters, 
+    stats, 
+    loading, 
+    error, 
+    updateParameter, 
+    isAuthenticated, 
+    isAdmin, 
+    authLoading 
+  } = useOptimizedSavings();
+  
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<{
     saving_rate: number;
@@ -39,61 +44,6 @@ export default function SavingsPage() {
     management_fee: 0
   });
 
-  useEffect(() => {
-    fetchSavingParameters();
-    fetchSavingStats();
-  }, []);
-
-  async function fetchSavingParameters() {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('saving_parameters')
-        .select(`
-          id,
-          saving_rate,
-          management_fee,
-          saving_types (
-            id,
-            name,
-            lock_period_months,
-            withdrawal_frequency
-          )
-        `);
-
-      if (error) throw error;
-      setParameters(data || []);
-    } catch (error) {
-      console.error('Erreur lors de la récupération des paramètres d\'épargne:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function fetchSavingStats() {
-    try {
-      // Récupérer le nombre d'utilisateurs avec épargne
-      const { count: userCount } = await supabase
-        .from('user_savings')
-        .select('*', { count: 'exact', head: true });
-      
-      // Récupérer le total d'épargne
-      const { data: savingsData } = await supabase
-        .from('user_savings')
-        .select('balance');
-      
-      const totalSavings = savingsData?.reduce((sum, item) => sum + Number(item.balance), 0) || 0;
-      const avgSaving = userCount ? totalSavings / userCount : 0;
-      
-      setStats({
-        totalUsers: userCount || 0,
-        totalSavings,
-        averageSavingPerUser: avgSaving
-      });
-    } catch (error) {
-      console.error('Erreur lors de la récupération des statistiques d\'épargne:', error);
-    }
-  }
 
   function startEditing(parameter: SavingParameter) {
     setEditingId(parameter.id);
@@ -105,18 +55,12 @@ export default function SavingsPage() {
 
   async function saveChanges(id: number) {
     try {
-      const { error } = await supabase
-        .from('saving_parameters')
-        .update({
-          saving_rate: editValues.saving_rate,
-          management_fee: editValues.management_fee
-        })
-        .eq('id', id);
-
-      if (error) throw error;
+      await updateParameter(id, {
+        saving_rate: editValues.saving_rate,
+        management_fee: editValues.management_fee
+      });
       
       setEditingId(null);
-      fetchSavingParameters();
     } catch (error) {
       console.error('Erreur lors de la mise à jour des paramètres:', error);
     }
@@ -128,6 +72,25 @@ export default function SavingsPage() {
 
   function formatPercent(value: number) {
     return (value * 100).toFixed(2) + '%';
+  }
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-gray-900">Accès refusé</h1>
+          <p className="text-gray-500">Vous n'avez pas les permissions nécessaires.</p>
+        </div>
+      </div>
+    );
   }
 
   return (

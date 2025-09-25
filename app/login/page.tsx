@@ -14,10 +14,10 @@ export default function LoginPage() {
           className="flex justify-center"
         >
           <Image
-            src="/logo.jpg"
+            src="/logo.svg"
             alt="Yamdata Logo"
-            width={360}
-            height={96}
+            width={346}
+            height={92}
             className="h-28 w-auto transition-all duration-300 hover:scale-105"
           />
         </motion.div>

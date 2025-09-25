@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { PencilIcon, CheckIcon, XMarkIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { useOptimizedOperators } from '@/lib/hooks/useOptimizedOperators';
+import Modal from '@/components/ui/Modal';
 
 interface Operator {
   id: number;
@@ -11,8 +13,18 @@ interface Operator {
 }
 
 export default function OperatorsPage() {
-  const [operators, setOperators] = useState<Operator[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { 
+    operators, 
+    loading, 
+    error, 
+    addOperator, 
+    updateOperator, 
+    deleteOperator, 
+    isAuthenticated, 
+    isAdmin, 
+    authLoading 
+  } = useOptimizedOperators();
+  
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
@@ -30,26 +42,6 @@ export default function OperatorsPage() {
     commission_rate: 0.05
   });
 
-  useEffect(() => {
-    fetchOperators();
-  }, []);
-
-  async function fetchOperators() {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('telecom_operators')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-      setOperators(data || []);
-    } catch (error) {
-      console.error('Erreur lors de la récupération des opérateurs:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   function startEditing(operator: Operator) {
     setEditingId(operator.id);
@@ -61,24 +53,18 @@ export default function OperatorsPage() {
 
   async function saveChanges(id: number) {
     try {
-      const { error } = await supabase
-        .from('telecom_operators')
-        .update({
-          name: editValues.name,
-          commission_rate: editValues.commission_rate
-        })
-        .eq('id', id);
-
-      if (error) throw error;
+      await updateOperator(id, {
+        name: editValues.name,
+        commission_rate: editValues.commission_rate
+      });
       
       setEditingId(null);
-      fetchOperators();
     } catch (error) {
       console.error('Erreur lors de la mise à jour de l\'opérateur:', error);
     }
   }
 
-  async function addOperator() {
+  async function handleAddOperator() {
     setAddError(null);
     setAddSuccess(null);
     setAddLoading(true);
@@ -88,17 +74,16 @@ export default function OperatorsPage() {
         setAddLoading(false);
         return;
       }
-      const { error } = await supabase
-        .from('telecom_operators')
-        .insert({
-          name: newOperator.name,
-          commission_rate: newOperator.commission_rate
-        });
-      if (error) throw error;
+      
+      await addOperator({
+        name: newOperator.name.trim(),
+        commission_rate: Number(newOperator.commission_rate.toFixed(3)),
+        active: true
+      });
+      
       setAddSuccess('Opérateur ajouté avec succès !');
       setShowAddModal(false);
       setNewOperator({ name: 'Telecel', commission_rate: 0.05 });
-      fetchOperators();
     } catch (error: any) {
       setAddError(error.message || "Erreur lors de l'ajout de l'opérateur.");
     } finally {
@@ -112,6 +97,25 @@ export default function OperatorsPage() {
 
   function formatPercent(value: number) {
     return (value * 100).toFixed(2) + '%';
+  }
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-gray-900">Accès refusé</h1>
+          <p className="text-gray-500">Vous n'avez pas les permissions nécessaires.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -233,14 +237,13 @@ export default function OperatorsPage() {
       </div>
 
       {/* Modal d'ajout d'opérateur */}
-      {showAddModal && (
-        <div className="fixed inset-0 overflow-y-auto z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setShowAddModal(false)}></div>
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">Ajouter un nouvel opérateur</h3>
-              <form onSubmit={e => { e.preventDefault(); addOperator(); }} className="space-y-4">
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Ajouter un nouvel opérateur"
+        size="md"
+      >
+        <form onSubmit={e => { e.preventDefault(); handleAddOperator(); }} className="space-y-4">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nom</label>
                   <select
@@ -294,11 +297,8 @@ export default function OperatorsPage() {
                     {addLoading ? 'Création...' : 'Créer'}
                   </button>
                 </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+        </form>
+      </Modal>
     </div>
   );
 }

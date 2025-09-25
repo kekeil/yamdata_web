@@ -4,7 +4,6 @@ import { useEffect, useCallback, useMemo } from 'react';
 import { useAuthStore } from '@/lib/store/authStore';
 import { usePathname, useRouter } from 'next/navigation';
 
-console.log('[AUTH DEBUG] AuthProvider monté/re-render');
 
 export default function AuthProvider({
   children,
@@ -21,7 +20,6 @@ export default function AuthProvider({
 
   // Vérifier la session au chargement de l'application une seule fois
   useEffect(() => {
-    console.log('[AUTH DEBUG][useEffect-montage] Appel checkSession');
     checkSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -33,12 +31,10 @@ export default function AuthProvider({
     // Redirection pour les routes dashboard
     if (isDashboardRoute) {
       if (!user && pathname !== '/login') {
-        console.log('[AUTH DEBUG][redirect] Pas de user, redirection vers /login');
         router.replace('/login');
         return;
       }
       if (user && !isAdmin && pathname !== '/access-denied') {
-        console.log('[AUTH DEBUG][redirect] User sans admin, redirection vers /access-denied');
         router.replace('/access-denied');
         return;
       }
@@ -46,7 +42,6 @@ export default function AuthProvider({
 
     // Redirection pour la page de login
     if (isLoginRoute && user && isAdmin) {
-      console.log('[AUTH DEBUG][redirect] User admin connecté sur /login, redirection vers /dashboard/overview');
       router.replace('/dashboard/overview');
       return;
     }
@@ -55,9 +50,6 @@ export default function AuthProvider({
   useEffect(() => {
     handleRedirections();
   }, [handleRedirections]);
-
-  console.log("SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL);
-  console.log("SUPABASE_KEY", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   return <>{children}</>;
 } 

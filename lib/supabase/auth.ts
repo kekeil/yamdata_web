@@ -27,37 +27,28 @@ export const signOut = async () => {
 
 // Middleware pour vérifier si l'utilisateur est connecté (côté client)
 export const requireAuth = async () => {
-  console.log('[AUTH DEBUG][requireAuth] Vérification de la session');
-  const { data: { session } } = await supabase.auth.getSession();
-  console.log('[AUTH DEBUG][requireAuth] Session récupérée:', session);
+  const { data: { user }, error } = await supabase.auth.getUser();
   
-  if (!session) {
-    console.log('[AUTH DEBUG][requireAuth] Pas de session, redirection vers /login');
+  if (error || !user) {
     redirect('/login');
   }
   
-  return session;
+  return { user };
 };
 
 // Middleware pour vérifier si l'utilisateur est admin (côté client)
 export const requireAdmin = async () => {
-  console.log('[AUTH DEBUG][requireAdmin] Début de la vérification admin');
-  const session = await requireAuth();
-  console.log('[AUTH DEBUG][requireAdmin] Session vérifiée, vérification du rôle admin');
+  const { user } = await requireAuth();
   
   const { data } = await supabase
     .from('user_roles')
     .select('roles(name)')
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .single<UserRoleResponse>();
     
-  console.log('[AUTH DEBUG][requireAdmin] Rôle récupéré:', data);
-  
   if (!data || data.roles.name !== 'admin') {
-    console.log('[AUTH DEBUG][requireAdmin] Utilisateur non admin, redirection vers /login');
     redirect('/login');
   }
   
-  console.log('[AUTH DEBUG][requireAdmin] Utilisateur admin vérifié');
-  return session;
+  return { user };
 }; 

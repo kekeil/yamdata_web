@@ -24,7 +24,8 @@ export default function LoginForm() {
   // Redirection si l'utilisateur est connecté et admin
   useEffect(() => {
     if (user && isAdmin && !isLoading) {
-      router.push('/dashboard/overview');
+      // Utiliser replace au lieu de push pour éviter l'historique de navigation
+      router.replace('/dashboard/overview');
     }
   }, [user, isAdmin, isLoading, router]);
   

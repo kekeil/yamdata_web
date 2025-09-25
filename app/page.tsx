@@ -80,8 +80,6 @@ export default function Home() {
         .single();
 
       if (error) {
-        console.error('Erreur Supabase lors de la préinscription:', error);
-        
         // Gestion spécifique des erreurs
         if (error.code === '23505') { // Violation de contrainte unique (email déjà existant)
           throw new Error('Cette adresse email est déjà enregistrée pour la préinscription.');
@@ -91,8 +89,6 @@ export default function Home() {
           throw new Error('Une erreur s\'est produite lors de l\'enregistrement. Veuillez réessayer.');
         }
       }
-
-      console.log('Préinscription réussie:', data);
       
       // Succès - réinitialiser le formulaire
       setSubmitStatus('success');
@@ -114,13 +110,11 @@ export default function Home() {
       }, 5000);
 
     } catch (error: any) {
-      console.error('Erreur lors de la préinscription:', error);
       setSubmitStatus('error');
       
       // Afficher un message d'erreur plus spécifique si possible
       const errorMsg = error.message || 'Une erreur inattendue s\'est produite. Veuillez réessayer.';
       setErrorMessage(errorMsg);
-      console.error('Message d\'erreur:', errorMsg);
 
       // Masquer le message d'erreur après 7 secondes
       setTimeout(() => {

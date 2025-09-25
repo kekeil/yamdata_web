@@ -15,7 +15,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 // Vérifier si la clé de service est définie
 if (!supabaseServiceKey) {
-  console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY n\'est pas définie. Le client admin ne fonctionnera pas correctement.');
+  // Clé de service manquante
 }
 
 // Créer un client Supabase avec la clé de service

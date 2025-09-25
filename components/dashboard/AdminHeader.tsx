@@ -23,14 +23,22 @@ export default function AdminHeader() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [notifications, setNotifications] = useState([
-    { id: 1, message: "Nouvel utilisateur inscrit", time: "Il y a 30 minutes" },
-    { id: 2, message: "5 nouvelles transactions", time: "Il y a 2 heures" },
-    { id: 3, message: "Mise à jour du système disponible", time: "Il y a 1 jour" }
-  ]);
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    message: string;
+    time: string;
+    type: 'info' | 'success' | 'warning' | 'error';
+  }>>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
 
   useEffect(() => {
     fetchUserProfile();
+    fetchNotifications();
+    
+    // Mettre à jour les notifications toutes les 30 secondes
+    const interval = setInterval(fetchNotifications, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   async function fetchUserProfile() {
@@ -53,8 +61,112 @@ export default function AdminHeader() {
         });
       }
     } catch (error) {
-      console.error('Erreur lors de la récupération du profil:', error);
+      // Gestion silencieuse des erreurs
     }
+  }
+
+  async function fetchNotifications() {
+    try {
+      setNotificationsLoading(true);
+      const newNotifications: Array<{
+        id: string;
+        message: string;
+        time: string;
+        type: 'info' | 'success' | 'warning' | 'error';
+      }> = [];
+
+      // Récupérer les nouvelles transactions (dernières 2 heures)
+      const { data: recentTransactions } = await supabase
+        .from('transactions')
+        .select('*')
+        .gte('created_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false });
+
+      // Récupérer les nouveaux utilisateurs (dernières 2 heures)
+      const { data: recentUsers } = await supabase
+        .from('profiles')
+        .select('*')
+        .gte('created_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false });
+
+      // Récupérer les nouvelles épargnes (dernières 2 heures)
+      const { data: recentSavings } = await supabase
+        .from('user_savings')
+        .select('*')
+        .gte('created_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: false });
+
+      // Notifications pour les nouvelles transactions
+      if (recentTransactions && recentTransactions.length > 0) {
+        newNotifications.push({
+          id: `recent-transactions-${Date.now()}`,
+          message: `${recentTransactions.length} nouvelle(s) transaction(s)`,
+          time: getTimeAgo(recentTransactions[0].created_at),
+          type: 'info'
+        });
+      }
+
+      // Notifications pour les nouveaux utilisateurs
+      if (recentUsers && recentUsers.length > 0) {
+        newNotifications.push({
+          id: `recent-users-${Date.now()}`,
+          message: `${recentUsers.length} nouvel(le)(s) utilisateur(s) inscrit(s)`,
+          time: getTimeAgo(recentUsers[0].created_at),
+          type: 'success'
+        });
+      }
+
+      // Notifications pour les nouvelles épargnes
+      if (recentSavings && recentSavings.length > 0) {
+        newNotifications.push({
+          id: `recent-savings-${Date.now()}`,
+          message: `${recentSavings.length} nouvelle(s) épargne(s) créée(s)`,
+          time: getTimeAgo(recentSavings[0].created_at),
+          type: 'success'
+        });
+      }
+
+      // Ajouter une notification de test pour vérifier que le système fonctionne
+      if (newNotifications.length === 0) {
+        newNotifications.push({
+          id: `no-activity-${Date.now()}`,
+          message: 'Aucune nouvelle activité récente',
+          time: 'Maintenant',
+          type: 'info'
+        });
+      }
+
+      setNotifications(newNotifications);
+      // Log pour déboguer
+      if (newNotifications.length > 0) {
+        console.log('Notifications mises à jour:', newNotifications);
+      }
+    } catch (error) {
+      // En cas d'erreur, afficher une notification d'erreur
+      setNotifications([{
+        id: `error-${Date.now()}`,
+        message: 'Erreur lors du chargement des notifications',
+        time: 'Maintenant',
+        type: 'error'
+      }]);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }
+
+  function getTimeAgo(dateString: string): string {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'À l\'instant';
+    if (diffInMinutes < 60) return `Il y a ${diffInMinutes} minute(s)`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `Il y a ${diffInHours} heure(s)`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `Il y a ${diffInDays} jour(s)`;
   }
 
   async function handleLogout() {
@@ -125,18 +237,33 @@ export default function AdminHeader() {
                     <div className="px-4 py-2 border-b border-gray-200">
                       <div className="flex justify-between items-center">
                         <h3 className="text-sm font-medium text-gray-900">Notifications</h3>
-                        {notifications.length > 0 && (
+                        <div className="flex space-x-2">
                           <button
-                            onClick={markAllAsRead}
-                            className="text-xs text-green-600 hover:text-green-800"
+                            onClick={fetchNotifications}
+                            disabled={notificationsLoading}
+                            className="text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+                            title="Actualiser les notifications"
                           >
-                            Tout marquer comme lu
+                            {notificationsLoading ? '⏳' : '🔄'}
                           </button>
-                        )}
+                          {notifications.length > 0 && (
+                            <button
+                              onClick={markAllAsRead}
+                              className="text-xs text-green-600 hover:text-green-800"
+                            >
+                              Tout marquer comme lu
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
-                    {notifications.length === 0 ? (
+                    {notificationsLoading ? (
+                      <div className="px-4 py-6 text-center text-sm text-gray-500">
+                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                        Chargement des notifications...
+                      </div>
+                    ) : notifications.length === 0 ? (
                       <div className="px-4 py-6 text-center text-sm text-gray-500">
                         Aucune notification
                       </div>

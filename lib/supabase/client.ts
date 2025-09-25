@@ -1,11 +1,11 @@
 "use client";
-import { createPagesBrowserClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserClient } from '@supabase/ssr';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
 
 // Créer un client Supabase pour utilisation côté client (navigateur) avec gestion automatique du cookie
-export const supabase = createPagesBrowserClient();
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
 // Interface pour le type de retour de la requête
 interface UserRoleResponse {
@@ -27,13 +27,11 @@ export const isAdmin = async () => {
     });
     
     if (error) {
-      console.error("Erreur lors de la vérification du rôle admin:", error.message);
       return false;
     }
     
     return !!data;
   } catch (error) {
-    console.error("Erreur lors de la vérification du rôle admin:", error);
     return false;
   }
 }; 

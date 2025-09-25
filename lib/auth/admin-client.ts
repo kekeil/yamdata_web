@@ -10,22 +10,17 @@ import { supabase } from '../supabase/client';
  */
 export async function checkAdminRoleDirectly(userId: string): Promise<boolean> {
   try {
-    console.log("Vérification du rôle admin pour:", userId);
-    
     // Utiliser une fonction RPC qui contourne les politiques RLS
     const { data, error } = await supabase.rpc('is_user_admin', {
       user_id_param: userId
     });
     
     if (error) {
-      console.error("Erreur lors de la vérification du rôle admin:", error.message);
       return false;
     }
     
-    console.log("Résultat vérification admin:", data);
     return !!data;
   } catch (error: any) {
-    console.error("Erreur lors de la vérification du rôle admin:", error.message);
     return false;
   }
 }
@@ -41,14 +36,11 @@ export async function addAdminRoleToUser(userId: string): Promise<boolean> {
     });
     
     if (error) {
-      console.error("Erreur lors de l'attribution du rôle admin:", error.message);
       return false;
     }
     
-    console.log("Rôle admin attribué avec succès");
     return true;
   } catch (error: any) {
-    console.error("Erreur lors de l'attribution du rôle admin:", error.message);
     return false;
   }
 } 
