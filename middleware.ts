@@ -13,16 +13,16 @@ export async function middleware(request: NextRequest) {
   }
   
   // Préchargement des ressources critiques pour le dashboard
-  if (request.nextUrl.pathname.startsWith('/dashboard')) {
+  if (request.nextUrl.pathname.startsWith('/admin/dashboard')) {
     response.headers.set('Link', [
-      '</dashboard/overview>; rel=prefetch',
-      '</dashboard/users>; rel=prefetch',
-      '</dashboard/preregistrations>; rel=prefetch'
+      '</admin/dashboard/overview>; rel=prefetch',
+      '</admin/dashboard/users>; rel=prefetch',
+      '</admin/dashboard/preregistrations>; rel=prefetch'
     ].join(', '));
   }
   
   // Vérification d'authentification pour les routes protégées
-  if (request.nextUrl.pathname.startsWith('/dashboard')) {
+  if (request.nextUrl.pathname.startsWith('/admin/dashboard')) {
     try {
       const cookieStore = await cookies();
       const supabase = createServerClient(
@@ -70,5 +70,5 @@ export async function middleware(request: NextRequest) {
 
 // Configurer les chemins sur lesquels le middleware s'applique
 export const config = {
-  matcher: ['/dashboard/:path*', '/login', '/access-denied'],
+  matcher: ['/admin/dashboard/:path*', '/login', '/access-denied'],
 }; 

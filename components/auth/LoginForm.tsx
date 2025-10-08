@@ -25,7 +25,7 @@ export default function LoginForm() {
   useEffect(() => {
     if (user && isAdmin && !isLoading) {
       // Utiliser replace au lieu de push pour éviter l'historique de navigation
-      router.replace('/dashboard/overview');
+      router.replace('/admin/dashboard/overview');
     }
   }, [user, isAdmin, isLoading, router]);
   

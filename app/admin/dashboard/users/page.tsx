@@ -337,7 +337,7 @@ export default function UsersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                        <a href={`/dashboard/users/${user.id}`} className="text-indigo-600 hover:text-indigo-900">
+                        <a href={`/admin/dashboard/users/${user.id}`} className="text-indigo-600 hover:text-indigo-900">
                           <span className="h-5 w-5" role="img" aria-label="éditer">✏️</span>
                         </a>
                         <button

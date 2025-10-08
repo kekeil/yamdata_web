@@ -14,13 +14,13 @@ import {
 } from '@heroicons/react/24/outline';
 
 const navigation = [
-  { name: 'Vue d\'ensemble', href: '/dashboard/overview', icon: ChartBarIcon },
-  { name: 'Utilisateurs', href: '/dashboard/users', icon: UsersIcon },
-  { name: 'Préinscriptions', href: '/dashboard/preregistrations', icon: UserPlusIcon },
-  { name: 'Forfaits', href: '/dashboard/plans', icon: PhoneIcon },
-  { name: 'Épargne', href: '/dashboard/savings', icon: CurrencyDollarIcon },
-  { name: 'Opérateurs', href: '/dashboard/operators', icon: BuildingOfficeIcon },
-  { name: 'Paramètres', href: '/dashboard/settings', icon: Cog6ToothIcon },
+  { name: 'Vue d\'ensemble', href: '/admin/dashboard/overview', icon: ChartBarIcon },
+  { name: 'Utilisateurs', href: '/admin/dashboard/users', icon: UsersIcon },
+  { name: 'Préinscriptions', href: '/admin/dashboard/preregistrations', icon: UserPlusIcon },
+  { name: 'Forfaits', href: '/admin/dashboard/plans', icon: PhoneIcon },
+  { name: 'Épargne', href: '/admin/dashboard/savings', icon: CurrencyDollarIcon },
+  { name: 'Opérateurs', href: '/admin/dashboard/operators', icon: BuildingOfficeIcon },
+  { name: 'Paramètres', href: '/admin/dashboard/settings', icon: Cog6ToothIcon },
 ];
 
 export default function AdminSidebar() {

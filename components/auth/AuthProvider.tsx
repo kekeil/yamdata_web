@@ -15,7 +15,7 @@ export default function AuthProvider({
   const router = useRouter();
 
   // Mémoriser les vérifications pour éviter les re-renders inutiles
-  const isDashboardRoute = useMemo(() => pathname.startsWith('/dashboard'), [pathname]);
+  const isDashboardRoute = useMemo(() => pathname.startsWith('/admin/dashboard'), [pathname]);
   const isLoginRoute = useMemo(() => pathname === '/login', [pathname]);
 
   // Vérifier la session au chargement de l'application une seule fois
@@ -42,7 +42,7 @@ export default function AuthProvider({
 
     // Redirection pour la page de login
     if (isLoginRoute && user && isAdmin) {
-      router.replace('/dashboard/overview');
+      router.replace('/admin/dashboard/overview');
       return;
     }
   }, [user, isAdmin, isLoading, isDashboardRoute, isLoginRoute, pathname, router]);
