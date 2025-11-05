@@ -479,7 +479,7 @@ export default function Home() {
                       </svg>
                     </a>
                     <a 
-                      href="https://www.tiktok.com/@yamdata?_t=ZN-8zQRtfAtmoo&_r=1" 
+                      href="https://www.tiktok.com/@yam_data?_r=1&_t=ZN-919jE6XRbja" 
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-green-600 hover:text-green-700 transition-colors duration-300"
@@ -1234,7 +1234,7 @@ export default function Home() {
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 sm:h-4 w-3 sm:w-4 mr-2 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
-                  <span className="break-all">contact@yamdata.com</span>
+                  <span className="break-all">contact@yamdata.bf</span>
                 </li>
                 <li className="flex items-center text-gray-400 text-sm">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 sm:h-4 w-3 sm:w-4 mr-2 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1279,7 +1279,7 @@ export default function Home() {
               </motion.a>
               <motion.a 
                 whileHover={{ scale: 1.1, y: -2 }}
-                href="https://www.tiktok.com/@yamdata?_t=ZN-8zQRtfAtmoo&_r=1" 
+                href="https://www.tiktok.com/@yam_data?_r=1&_t=ZN-919jE6XRbja" 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-green-300 transition-colors duration-300"
