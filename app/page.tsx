@@ -758,7 +758,7 @@ export default function Home() {
                       <span className="w-2 h-2 bg-gray-400 rounded-full mr-2"></span>
                       Coût des 2 Go
                     </dt>
-                    <dd className="text-base font-semibold text-gray-600">550 FCFA</dd>
+                    <dd className="text-base font-semibold text-gray-600">700 FCFA</dd>
                   </div>
                   <motion.div 
                     initial={{ width: 0 }}
@@ -772,43 +772,7 @@ export default function Home() {
                       <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
                       Montant destiné à l'épargne
                     </dt>
-                    <dd className="text-base font-semibold text-gray-600">500 FCFA</dd>
-                  </div>
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    whileInView={{ width: "100%" }}
-                    transition={{ duration: 0.8, delay: 0.5 }}
-                    viewport={{ once: true }}
-                    className="h-px bg-gradient-to-r from-green-200 to-transparent"
-                  />
-                  <div className="flex items-center justify-between pt-2">
-                    <dt className="text-base font-medium text-gray-900 flex items-center">
-                      <span className="w-2 h-2 bg-red-400 rounded-full mr-2"></span>
-                      Frais de gestion
-                    </dt>
-                    <dd className="text-base font-semibold text-gray-600">-50 FCFA</dd>
-                  </div>
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    whileInView={{ width: "100%" }}
-                    transition={{ duration: 0.8, delay: 0.6 }}
-                    viewport={{ once: true }}
-                    className="h-px bg-gradient-to-r from-green-200 to-transparent"
-                  />
-                  <div className="flex items-center justify-between pt-2">
-                    <dt className="text-base font-bold text-gray-900 flex items-center">
-                      <span className="w-3 h-3 bg-green-600 rounded-full mr-2 animate-pulse"></span>
-                      Épargne nette
-                    </dt>
-                    <motion.dd 
-                      initial={{ scale: 1 }}
-                      whileInView={{ scale: [1, 1.2, 1] }}
-                      transition={{ duration: 0.6, delay: 0.7, times: [0, 0.5, 1] }}
-                      viewport={{ once: true }}
-                      className="text-lg font-bold text-green-600"
-                    >
-                      450 FCFA
-                    </motion.dd>
+                    <dd className="text-base font-semibold text-gray-600">250 FCFA</dd>
                   </div>
                 </dl>
                 <div className="mt-6 text-center">
@@ -1234,19 +1198,34 @@ export default function Home() {
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 sm:h-4 w-3 sm:w-4 mr-2 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
-                  <span className="break-all">contact@yamdata.bf</span>
+                  <a
+                    href="mailto:contact@yamdata.bf"
+                    className="break-all text-gray-400 hover:text-green-300 transition-colors duration-300 text-sm"
+                  >
+                    contact@yamdata.bf
+                  </a>
                 </li>
                 <li className="flex items-center text-gray-400 text-sm">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 sm:h-4 w-3 sm:w-4 mr-2 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
-                  +226 67 74 86 90
+                  <a
+                    href="tel:+22667748690"
+                    className="text-gray-400 hover:text-green-300 transition-colors duration-300 text-sm"
+                  >
+                    +226 67 74 86 90
+                  </a>
                 </li>
                 <li className="flex items-center text-gray-400 text-sm">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 sm:h-4 w-3 sm:w-4 mr-2 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
-                  +226 65 98 19 94
+                  <a
+                    href="tel:+22665981994"
+                    className="text-gray-400 hover:text-green-300 transition-colors duration-300 text-sm"
+                  >
+                    +226 65 98 19 94
+                  </a>
                 </li>
               </ul>
             </div>
