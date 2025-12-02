@@ -1207,7 +1207,7 @@ export default function Home() {
                 className="absolute top-0 left-0 w-full h-full"
                 controls
                 autoPlay
-                src="/Yamdata format youtube.mp4"
+                src="/Yamdata_format_youtube.mp4"
               >
                 Votre navigateur ne supporte pas la lecture de vidéos.
               </video>
