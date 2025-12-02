@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRightIcon, DevicePhoneMobileIcon, BanknotesIcon, ShieldCheckIcon, CheckCircleIcon, ExclamationTriangleIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { usePreregistrationStats } from '@/lib/hooks/usePreregistrationStats';
 
@@ -30,9 +30,29 @@ export default function Home() {
   const [expressSubmitStatus, setExpressSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [expressErrorMessage, setExpressErrorMessage] = useState<string>('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
   
   // Récupération des statistiques de préinscription en temps réel
   const { stats, loading: statsLoading, error: statsError, refetch: refetchStats } = usePreregistrationStats();
+
+  // Gestion de la fermeture du modal vidéo avec la touche Escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showVideoModal) {
+        setShowVideoModal(false);
+      }
+    };
+
+    if (showVideoModal) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden'; // Empêcher le scroll de la page
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [showVideoModal]);
 
   const handleFeatureToggle = (feature: string) => {
     setPreregistrationData(prev => ({
@@ -69,8 +89,6 @@ export default function Home() {
         user_agent: userAgent,
         notes: null
       };
-
-      console.log('Envoi des données de préinscription vers Supabase:', preregistrationPayload);
 
       // Insérer dans Supabase
       const { data, error } = await supabase
@@ -153,8 +171,6 @@ export default function Home() {
         notes: 'Inscription via formulaire express'
       };
 
-      console.log('Envoi des données de préinscription express vers Supabase:', preregistrationPayload);
-
       // Insérer dans Supabase
       const { data, error } = await supabase
         .from('preregistrations')
@@ -175,8 +191,6 @@ export default function Home() {
         }
       }
 
-      console.log('Préinscription express réussie:', data);
-      
       // Succès - réinitialiser le formulaire
       setExpressSubmitStatus('success');
       setExpressFormData({
@@ -524,13 +538,17 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
-                  <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+                  <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black bg-opacity-30 rounded-lg">
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       type="button"
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none"
+                      onClick={() => setShowVideoModal(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none z-10"
                     >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
                       Voir la démo
                     </motion.button>
                   </div>
@@ -1160,6 +1178,43 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Modal Vidéo */}
+      {showVideoModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4"
+          onClick={() => setShowVideoModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-4xl bg-black rounded-lg overflow-hidden shadow-2xl"
+          >
+            <button
+              onClick={() => setShowVideoModal(false)}
+              className="absolute top-4 right-4 z-10 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-2"
+              aria-label="Fermer la vidéo"
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <video
+                className="absolute top-0 left-0 w-full h-full"
+                controls
+                autoPlay
+                src="/Yamdata format youtube.mp4"
+              >
+                Votre navigateur ne supporte pas la lecture de vidéos.
+              </video>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
 
       {/* Footer */}
       <footer className="bg-gray-800">

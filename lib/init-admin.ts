@@ -28,13 +28,14 @@ export async function initializeAdmin(secretKey: string) {
     let userPhone: string | null = null;
     let userExists = false;
 
-    const { data: userList, error: userListError } = await supabaseAdmin!.auth.admin.listUsers({ email: adminEmail });
+    const { data: userList, error: userListError } = await supabaseAdmin!.auth.admin.listUsers();
     if (userListError) throw userListError;
-    if (userList && userList.users && userList.users.length > 0) {
+    const existingUser = userList?.users?.find(user => user.email === adminEmail);
+    if (existingUser) {
       // Utilisateur déjà existant
-      userId = userList.users[0].id;
-      userEmail = userList.users[0].email;
-      userPhone = userList.users[0].phone;
+      userId = existingUser.id;
+      userEmail = existingUser.email ?? null;
+      userPhone = existingUser.phone ?? null;
       userExists = true;
     } else {
       // Créer l'utilisateur
@@ -47,8 +48,8 @@ export async function initializeAdmin(secretKey: string) {
       if (authError) throw authError;
       if (!authData.user) throw new Error('Échec de la création de l\'utilisateur');
       userId = authData.user.id;
-      userEmail = authData.user.email;
-      userPhone = authData.user.phone;
+      userEmail = authData.user.email ?? null;
+      userPhone = authData.user.phone ?? null;
     }
 
     // 2. Vérifier/créer le profil dans 'profiles'

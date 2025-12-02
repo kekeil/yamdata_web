@@ -54,10 +54,17 @@ export default function AdminHeader() {
           .eq('user_id', user.id)
           .single();
           
+        const roleData = data?.roles;
+        const roleName = roleData && !Array.isArray(roleData) 
+          ? (roleData as { name: string }).name 
+          : Array.isArray(roleData) && roleData[0] 
+            ? (roleData[0] as { name: string }).name 
+            : 'utilisateur';
+        
         setUserProfile({
           id: user.id,
           email: user.email || '',
-          role: data?.roles?.name || 'utilisateur'
+          role: roleName
         });
       }
     } catch (error) {
@@ -137,10 +144,6 @@ export default function AdminHeader() {
       }
 
       setNotifications(newNotifications);
-      // Log pour déboguer
-      if (newNotifications.length > 0) {
-        console.log('Notifications mises à jour:', newNotifications);
-      }
     } catch (error) {
       // En cas d'erreur, afficher une notification d'erreur
       setNotifications([{

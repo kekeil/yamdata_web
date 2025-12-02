@@ -27,5 +27,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-console.log("🔧 Next.js a chargé next.config.ts");
 export default nextConfig;

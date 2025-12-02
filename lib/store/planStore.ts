@@ -54,7 +54,20 @@ export const usePlanStore = create<PlanState>((set, get) => ({
         
       if (error) throw error;
       
-      set({ plans: data || [], isLoading: false });
+      // Mapper les données pour correspondre au type DataPlan
+      const mappedPlans = (data || []).map((plan: any) => {
+        const operator = Array.isArray(plan.telecom_operators) && plan.telecom_operators.length > 0
+          ? plan.telecom_operators[0]
+          : plan.telecom_operators;
+        return {
+          ...plan,
+          operator_id: operator?.id || 0,
+          volume_go: plan.volume_go || 0,
+          telecom_operators: operator
+        };
+      });
+      
+      set({ plans: mappedPlans, isLoading: false });
     } catch (error: any) {
       set({ error: error.message, isLoading: false });
     }
@@ -102,7 +115,21 @@ export const usePlanStore = create<PlanState>((set, get) => ({
         
       if (error) throw error;
       
-      set({ selectedPlan: data, isLoading: false });
+      // Mapper les données pour correspondre au type DataPlan
+      const operator = data && Array.isArray(data.telecom_operators) && data.telecom_operators.length > 0
+        ? data.telecom_operators[0]
+        : data?.telecom_operators && !Array.isArray(data.telecom_operators)
+          ? data.telecom_operators
+          : null;
+      const operatorId = operator && !Array.isArray(operator) ? (operator as { id: number }).id : 0;
+      const mappedPlan: DataPlan | null = data && operator && !Array.isArray(operator) ? {
+        ...data,
+        operator_id: operatorId,
+        volume_go: data.volume_go || 0,
+        telecom_operators: operator as TelecomOperator
+      } : null;
+      
+      set({ selectedPlan: mappedPlan, isLoading: false });
     } catch (error: any) {
       set({ error: error.message, isLoading: false });
     }

@@ -13,9 +13,5 @@ const generateRandomSecret = () => {
 
 const secret = generateRandomSecret();
 
-console.log('\n=== CLÉ SECRÈTE GÉNÉRÉE ===');
-console.log(secret);
-console.log('\nCopiez cette clé et utilisez-la pour les variables suivantes dans votre fichier .env.local :');
-console.log('ADMIN_INIT_SECRET=', secret);
-console.log('ADMIN_INIT_SECRET_VERIFY=', secret);
-console.log('\n'); 
+// Afficher la clé secrète générée
+process.stdout.write(`\n=== CLÉ SECRÈTE GÉNÉRÉE ===\n${secret}\n\nCopiez cette clé et utilisez-la pour les variables suivantes dans votre fichier .env.local :\nADMIN_INIT_SECRET=${secret}\nADMIN_INIT_SECRET_VERIFY=${secret}\n\n`); 

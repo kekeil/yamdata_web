@@ -56,7 +56,6 @@ export default function UsersPage() {
   async function fetchUsers() {
     try {
       setLoading(true);
-      console.log('[OPTIMIZED][UsersPage] Début de la récupération des utilisateurs');
 
       const { data, error } = await supabase
         .from('profiles')
@@ -78,8 +77,20 @@ export default function UsersPage() {
         throw error;
       }
       
-      console.log('[OPTIMIZED][UsersPage] Utilisateurs récupérés:', data?.length || 0, 'utilisateurs');
-      setUsers(data || []);
+      // Mapper les données pour correspondre au type User
+      const mappedUsers = (data || []).map((user: any) => ({
+        id: user.id,
+        email: user.email || '',
+        phone: user.phone || '',
+        full_name: user.full_name,
+        created_at: user.created_at,
+        user_roles: (user.user_roles || []).map((ur: any) => ({
+          roles: {
+            name: (ur.roles && !Array.isArray(ur.roles) ? ur.roles.name : Array.isArray(ur.roles) && ur.roles[0]?.name) || ''
+          }
+        }))
+      }));
+      setUsers(mappedUsers);
     } catch (error) {
       console.error('[OPTIMIZED][UsersPage] Erreur lors de la récupération des utilisateurs:', error);
     } finally {

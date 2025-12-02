@@ -47,7 +47,15 @@ export const useAuthStore = create<AuthState>()(
               `)
               .eq('user_id', data.user.id);
             
-            const roleNames = userRoles?.map(ur => ur.roles?.name).filter(Boolean) || [];
+            const roleNames = userRoles?.map(ur => {
+              const role = ur.roles;
+              if (role && !Array.isArray(role)) {
+                return (role as { name: string }).name;
+              } else if (Array.isArray(role) && role[0]) {
+                return (role[0] as { name: string }).name;
+              }
+              return null;
+            }).filter(Boolean) as string[] || [];
             const isAdmin = roleNames.includes('admin');
             const isSupport = roleNames.includes('support');
             
@@ -119,7 +127,15 @@ export const useAuthStore = create<AuthState>()(
             .eq('user_id', user.id);
           
           
-          const roleNames = userRoles?.map(ur => ur.roles?.name).filter(Boolean) || [];
+          const roleNames = userRoles?.map(ur => {
+            const role = ur.roles;
+            if (role && !Array.isArray(role)) {
+              return (role as { name: string }).name;
+            } else if (Array.isArray(role) && role[0]) {
+              return (role[0] as { name: string }).name;
+            }
+            return null;
+          }).filter(Boolean) as string[] || [];
           const isAdmin = roleNames.includes('admin');
           const isSupport = roleNames.includes('support');
           
@@ -144,7 +160,6 @@ export const useAuthStore = create<AuthState>()(
       refreshUserRole: async () => {
         const { user } = get();
         if (!user) {
-          console.log('[AUTH STORE][refreshUserRole] Pas d\'utilisateur connecté.');
           return;
         }
         try {

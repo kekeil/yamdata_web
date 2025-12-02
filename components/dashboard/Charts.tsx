@@ -98,7 +98,12 @@ export default function DashboardCharts({ stats }: DashboardChartsProps) {
 
       // Traitement des données d'épargne
       const savingsByType = savings?.reduce((acc: any, saving) => {
-        const type = saving.saving_types?.name || 'Non défini';
+        const savingType = saving.saving_types;
+        const type = savingType && !Array.isArray(savingType) 
+          ? (savingType as { name: string }).name 
+          : Array.isArray(savingType) && savingType[0] 
+            ? (savingType[0] as { name: string }).name 
+            : 'Non défini';
         if (!acc[type]) {
           acc[type] = { name: type, value: 0 };
         }
@@ -111,7 +116,7 @@ export default function DashboardCharts({ stats }: DashboardChartsProps) {
       // Traitement des données des opérateurs
       const operatorsWithPlans = operators?.map(op => ({
         name: op.name,
-        plans: op.data_plans?.length || 0
+        value: op.data_plans?.length || 0
       }));
 
       setOperatorsData(operatorsWithPlans || []);
@@ -209,7 +214,10 @@ export default function DashboardCharts({ stats }: DashboardChartsProps) {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={(props: any) => {
+                    const { name, percent } = props;
+                    return `${name} ${((percent || 0) * 100).toFixed(0)}%`;
+                  }}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"

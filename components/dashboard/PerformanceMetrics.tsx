@@ -30,9 +30,9 @@ export default function PerformanceMetrics() {
       setLoading(true);
 
       // Mesurer le temps de réponse de la base de données
-      const startTime = performance.now();
+      const startTime = window.performance.now();
       await supabase.from('profiles').select('id').limit(1);
-      const responseTime = performance.now() - startTime;
+      const responseTime = window.performance.now() - startTime;
 
       // Calculer le taux d'erreur (simulation)
       const { data: transactions, error } = await supabase

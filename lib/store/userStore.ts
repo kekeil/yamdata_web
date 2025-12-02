@@ -34,7 +34,11 @@ export const useUserStore = create<UserState>((set, get) => ({
           full_name,
           phone, 
           created_at,
+          updated_at,
           user_roles (
+            user_id,
+            role_id,
+            assigned_at,
             roles (
               id,
               name
@@ -44,7 +48,19 @@ export const useUserStore = create<UserState>((set, get) => ({
         
       if (error) throw error;
       
-      set({ users: data || [], isLoading: false });
+      // Mapper les données pour correspondre au type Profile
+      const mappedUsers = (data || []).map((user: any) => ({
+        ...user,
+        updated_at: user.updated_at || user.created_at,
+        user_roles: (user.user_roles || []).map((ur: any) => ({
+          user_id: ur.user_id || user.id,
+          role_id: ur.role_id || (ur.roles && !Array.isArray(ur.roles) ? ur.roles.id : Array.isArray(ur.roles) && ur.roles[0]?.id) || 0,
+          assigned_at: ur.assigned_at || new Date().toISOString(),
+          roles: ur.roles && !Array.isArray(ur.roles) ? ur.roles : Array.isArray(ur.roles) && ur.roles[0] ? ur.roles[0] : null
+        }))
+      }));
+      
+      set({ users: mappedUsers, isLoading: false });
     } catch (error: any) {
       set({ error: error.message, isLoading: false });
     }
@@ -91,7 +107,28 @@ export const useUserStore = create<UserState>((set, get) => ({
         
       if (error) throw error;
       
-      set({ selectedUser: data, isLoading: false });
+      // Mapper les données pour correspondre au type Profile
+      const mappedUser = data ? {
+        ...data,
+        user_roles: (data.user_roles || []).map((ur: any) => ({
+          user_id: ur.user_id || data.id,
+          role_id: ur.role_id || (ur.roles && !Array.isArray(ur.roles) ? ur.roles.id : Array.isArray(ur.roles) && ur.roles[0]?.id) || 0,
+          assigned_at: ur.assigned_at || new Date().toISOString(),
+          roles: ur.roles && !Array.isArray(ur.roles) ? ur.roles : Array.isArray(ur.roles) && ur.roles[0] ? ur.roles[0] : null
+        })),
+        savings_accounts: (data.savings_accounts || []).map((sa: any) => ({
+          ...sa,
+          user_id: sa.user_id || data.id,
+          updated_at: sa.updated_at || sa.created_at || new Date().toISOString()
+        })),
+        transactions: (data.transactions || []).map((tx: any) => ({
+          ...tx,
+          user_id: tx.user_id || data.id,
+          updated_at: tx.updated_at || tx.created_at || new Date().toISOString()
+        }))
+      } : null;
+      
+      set({ selectedUser: mappedUser, isLoading: false });
     } catch (error: any) {
       set({ error: error.message, isLoading: false });
     }

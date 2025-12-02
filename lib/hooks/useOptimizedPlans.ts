@@ -66,7 +66,15 @@ export function useOptimizedPlans() {
         throw plansError;
       }
 
-      setPlans(data || []);
+      // Mapper les données pour correspondre au type DataPlan
+      const mappedPlans = (data || []).map((plan: any) => ({
+        ...plan,
+        telecom_operators: Array.isArray(plan.telecom_operators) && plan.telecom_operators.length > 0
+          ? plan.telecom_operators[0]
+          : plan.telecom_operators
+      }));
+
+      setPlans(mappedPlans);
       hasFetched.current = true;
     } catch (err: any) {
       console.error('Erreur lors du chargement des forfaits:', err);
@@ -131,11 +139,25 @@ export function useOptimizedPlans() {
         throw error;
       }
 
+      // Mapper les données pour correspondre au type DataPlan
+      const operator = data && Array.isArray(data.telecom_operators) && data.telecom_operators.length > 0
+        ? data.telecom_operators[0]
+        : data?.telecom_operators && !Array.isArray(data.telecom_operators)
+          ? data.telecom_operators
+          : null;
+      
+      const mappedData: DataPlan | null = data && operator ? {
+        ...data,
+        telecom_operators: operator as { id: number; name: string; commission_rate: number; }
+      } : null;
+
       // Mettre à jour la liste locale
-      setPlans(prev => [data, ...prev]);
+      if (mappedData) {
+        setPlans(prev => [mappedData, ...prev]);
+      }
       hasFetched.current = false; // Permettre le rechargement
       
-      return data;
+      return mappedData || data;
     } catch (err: any) {
       console.error('Erreur lors de l\'ajout du forfait:', err);
       setError(err.message || 'Erreur lors de l\'ajout du forfait');
@@ -173,10 +195,24 @@ export function useOptimizedPlans() {
         throw error;
       }
 
-      // Mettre à jour la liste locale
-      setPlans(prev => prev.map(plan => plan.id === id ? data : plan));
+      // Mapper les données pour correspondre au type DataPlan
+      const operator = data && Array.isArray(data.telecom_operators) && data.telecom_operators.length > 0
+        ? data.telecom_operators[0]
+        : data?.telecom_operators && !Array.isArray(data.telecom_operators)
+          ? data.telecom_operators
+          : null;
       
-      return data;
+      const mappedData: DataPlan | null = data && operator ? {
+        ...data,
+        telecom_operators: operator as { id: number; name: string; commission_rate: number; }
+      } : null;
+
+      // Mettre à jour la liste locale
+      if (mappedData) {
+        setPlans(prev => prev.map(plan => plan.id === id ? mappedData : plan));
+      }
+      
+      return mappedData || data;
     } catch (err: any) {
       console.error('Erreur lors de la mise à jour du forfait:', err);
       setError(err.message || 'Erreur lors de la mise à jour du forfait');

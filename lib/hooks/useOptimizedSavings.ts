@@ -67,7 +67,15 @@ export function useOptimizedSavings() {
         throw parametersError;
       }
 
-      setParameters(data || []);
+      // Mapper les données pour correspondre au type SavingParameter
+      const mappedParameters = (data || []).map((param: any) => ({
+        ...param,
+        saving_types: Array.isArray(param.saving_types) && param.saving_types.length > 0
+          ? param.saving_types[0]
+          : param.saving_types
+      }));
+
+      setParameters(mappedParameters);
       hasFetched.current = true;
     } catch (err: any) {
       console.error('Erreur lors du chargement des paramètres d\'épargne:', err);
@@ -142,10 +150,24 @@ export function useOptimizedSavings() {
         throw error;
       }
 
-      // Mettre à jour la liste locale
-      setParameters(prev => prev.map(param => param.id === id ? data : param));
+      // Mapper les données pour correspondre au type SavingParameter
+      const savingType = data && Array.isArray(data.saving_types) && data.saving_types.length > 0
+        ? data.saving_types[0]
+        : data?.saving_types && !Array.isArray(data.saving_types)
+          ? data.saving_types
+          : null;
       
-      return data;
+      const mappedData: SavingParameter | null = data && savingType ? {
+        ...data,
+        saving_types: savingType as { id: number; name: string; lock_period_months: number; withdrawal_frequency: string; }
+      } : null;
+
+      // Mettre à jour la liste locale
+      if (mappedData) {
+        setParameters(prev => prev.map(param => param.id === id ? mappedData : param));
+      }
+      
+      return mappedData || data;
     } catch (err: any) {
       console.error('Erreur lors de la mise à jour des paramètres:', err);
       setError(err.message || 'Erreur lors de la mise à jour des paramètres');

@@ -35,8 +35,6 @@ export function usePreregistrationStats() {
       }
 
       // Si la vue n'existe pas ou échoue, calculer manuellement
-      console.log('Vue preregistration_stats non disponible, calcul manuel...');
-      
       const { data: preregistrations, error: dataError } = await supabase
         .from('preregistrations')
         .select('*');
