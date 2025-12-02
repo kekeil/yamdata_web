@@ -30,29 +30,9 @@ export default function Home() {
   const [expressSubmitStatus, setExpressSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [expressErrorMessage, setExpressErrorMessage] = useState<string>('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showVideoModal, setShowVideoModal] = useState(false);
   
   // Récupération des statistiques de préinscription en temps réel
   const { stats, loading: statsLoading, error: statsError, refetch: refetchStats } = usePreregistrationStats();
-
-  // Gestion de la fermeture du modal vidéo avec la touche Escape
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && showVideoModal) {
-        setShowVideoModal(false);
-      }
-    };
-
-    if (showVideoModal) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden'; // Empêcher le scroll de la page
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [showVideoModal]);
 
   const handleFeatureToggle = (feature: string) => {
     setPreregistrationData(prev => ({
@@ -512,45 +492,21 @@ export default function Home() {
               transition={{ duration: 0.8, delay: 0.3 }}
               className="mt-8 sm:mt-12 relative max-w-sm sm:max-w-lg mx-auto lg:mt-0 lg:max-w-none lg:mx-0 lg:col-span-6 lg:flex lg:items-center"
             >
-              <div className="relative mx-auto w-full rounded-lg shadow-lg lg:max-w-md">
-                <div className="relative block w-full bg-white rounded-lg overflow-hidden">
-                  {/* Mockup d'application mobile */}
-                  <div className="aspect-w-9 aspect-h-16 bg-gray-100 p-4">
-                    <div className="flex flex-col h-full rounded-xl bg-white shadow-sm overflow-hidden">
-                      <div className="h-10 bg-green-600 flex items-center justify-center">
-                        <Image 
-                          src="/logo.svg" 
-                          alt="Yamdata App" 
-                          width={51} 
-                          height={13} 
-                          className="h-3 sm:h-4 lg:h-5 w-auto"
-                        />
-                      </div>
-                      <div className="flex-1 p-4">
-                        <div className="w-full h-24 bg-green-50 rounded-lg mb-4 flex items-center justify-center">
-                          <p className="text-green-600 font-bold text-lg">450 FCFA</p>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="h-8 bg-gray-100 rounded-md"></div>
-                          <div className="h-8 bg-gray-100 rounded-md"></div>
-                          <div className="h-8 bg-gray-100 rounded-md"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black bg-opacity-30 rounded-lg">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      type="button"
-                      onClick={() => setShowVideoModal(true)}
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none z-10"
+              <div className="relative mx-auto w-full rounded-lg shadow-lg lg:max-w-md overflow-hidden">
+                <div className="relative block w-full bg-black rounded-lg overflow-hidden">
+                  {/* Vidéo intégrée */}
+                  <div className="aspect-w-9 aspect-h-16 relative">
+                    <video
+                      className="w-full h-full object-cover"
+                      controls
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      src="/Yamdata_format_youtube.mp4"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z"/>
-                      </svg>
-                      Voir la démo
-                    </motion.button>
+                      Votre navigateur ne supporte pas la lecture de vidéos.
+                    </video>
                   </div>
                 </div>
               </div>
@@ -1178,43 +1134,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-
-      {/* Modal Vidéo */}
-      {showVideoModal && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4"
-          onClick={() => setShowVideoModal(false)}
-        >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-4xl bg-black rounded-lg overflow-hidden shadow-2xl"
-          >
-            <button
-              onClick={() => setShowVideoModal(false)}
-              className="absolute top-4 right-4 z-10 text-white hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full p-2"
-              aria-label="Fermer la vidéo"
-            >
-              <XMarkIcon className="h-6 w-6" />
-            </button>
-            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-              <video
-                className="absolute top-0 left-0 w-full h-full"
-                controls
-                autoPlay
-                src="/Yamdata_format_youtube.mp4"
-              >
-                Votre navigateur ne supporte pas la lecture de vidéos.
-              </video>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
 
       {/* Footer */}
       <footer className="bg-gray-800">
