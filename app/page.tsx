@@ -1184,10 +1184,12 @@ export default function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                   <a
-                    href="tel:+22667748690"
+                    href="https://wa.me/22653967777"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-gray-400 hover:text-green-300 transition-colors duration-300 text-sm"
                   >
-                    +226 67 74 86 90
+                    Moov : 53 96 77 77
                   </a>
                 </li>
                 <li className="flex items-center text-gray-400 text-sm">
@@ -1195,10 +1197,25 @@ export default function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                   <a
-                    href="tel:+22665981994"
+                    href="https://wa.me/22679117855"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-gray-400 hover:text-green-300 transition-colors duration-300 text-sm"
                   >
-                    +226 65 98 19 94
+                    Telecel : 79 11 78 55
+                  </a>
+                </li>
+                <li className="flex items-center text-gray-400 text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 sm:h-4 w-3 sm:w-4 mr-2 text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  <a
+                    href="https://wa.me/22656158448"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-400 hover:text-green-300 transition-colors duration-300 text-sm"
+                  >
+                    Orange : 56 15 84 48
                   </a>
                 </li>
               </ul>
