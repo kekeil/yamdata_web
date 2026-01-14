@@ -1,114 +1,629 @@
--- YAMDATA - SCHÉMA SQL COMPLET
--- Base de données optimisée pour Supabase
--- Plateforme d'achat de forfaits internet avec épargne automatique
-
-----------------------------------------------------------------------
--- 1. CONFIGURATION INITIALE
-----------------------------------------------------------------------
-
--- Activation de l'extension UUID si nécessaire
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
-----------------------------------------------------------------------
--- 2. FONCTIONS UTILITAIRES DE BASE
-----------------------------------------------------------------------
-
--- Déclencheur pour maintenir updated_at
-CREATE OR REPLACE FUNCTION update_modified_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-----------------------------------------------------------------------
--- 3. UTILISATEURS ET RÔLES
-----------------------------------------------------------------------
-
--- Table des profils utilisateurs
-CREATE TABLE public.profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT UNIQUE NOT NULL,
-  full_name TEXT,
-  phone TEXT,
-  avatar_url TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+| sql_text                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| -- ============================================
+-- TABLE: public.automatic_savings
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.automatic_savings (
+    id UUID NOT NULL DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    transaction_id BIGINT NOT NULL,
+    amount NUMERIC(12,2) NOT NULL,
+    fee_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+    saving_rate NUMERIC(5,4) NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending'::text,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TRIGGER trg_profiles_updated_at
-BEFORE UPDATE ON public.profiles
-FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-
--- Rôles système
-CREATE TABLE public.roles (
-  id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE CHECK (name IN ('admin', 'user', 'support')),
-  description TEXT,
-  permissions JSONB NOT NULL DEFAULT '{}'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -- ============================================
+-- TABLE: public.dashboard_stats
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.dashboard_stats (
+    users_count BIGINT,
+    transactions_count BIGINT,
+    operators_count BIGINT,
+    plans_count BIGINT,
+    transactions_this_month BIGINT,
+    new_users_this_week BIGINT
 );
 
--- Attribution des rôles aux utilisateurs (many-to-many)
-CREATE TABLE public.user_roles (
-  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  role_id INT NOT NULL REFERENCES public.roles(id) ON DELETE CASCADE,
-  assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  assigned_by UUID REFERENCES public.profiles(id),
-  PRIMARY KEY (user_id, role_id)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -- ============================================
+-- TABLE: public.data_plans
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.data_plans (
+    id INTEGER NOT NULL DEFAULT nextval('data_plans_id_seq'::regclass),
+    operator_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    volume_mb INTEGER NOT NULL,
+    price NUMERIC(12,2) NOT NULL,
+    validity_days INTEGER NOT NULL,
+    is_popular BOOLEAN DEFAULT false,
+    active BOOLEAN NOT NULL DEFAULT true,
+    description TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Indexation
-CREATE INDEX idx_user_roles_user_id ON public.user_roles(user_id);
-CREATE INDEX idx_user_roles_role_id ON public.user_roles(role_id);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -- ============================================
+-- TABLE: public.popular_data_plans
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.popular_data_plans (
+    id INTEGER,
+    operator_id INTEGER,
+    name TEXT,
+    volume_mb INTEGER,
+    price NUMERIC(12,2),
+    validity_days INTEGER,
+    is_popular BOOLEAN,
+    active BOOLEAN,
+    description TEXT,
+    created_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ,
+    operator_name TEXT,
+    subscription_count BIGINT
+);
 
--- Insertion des rôles de base
-INSERT INTO public.roles (name, description, permissions) VALUES 
-('admin', 'Administrateur système avec accès complet', '{"all": true}'),
-('user', 'Utilisateur standard', '{"read": true, "create_transactions": true}'),
-('support', 'Agent support client', '{"read": true, "support_actions": true}')
-ON CONFLICT (name) DO NOTHING;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -- ============================================
+-- TABLE: public.preregistration_stats
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.preregistration_stats (
+    total_preregistrations BIGINT,
+    pending_count BIGINT,
+    marketing_consent_count BIGINT,
+    with_phone_count BIGINT,
+    friend_referrals BIGINT,
+    social_media_referrals BIGINT,
+    last_week_registrations BIGINT,
+    last_month_registrations BIGINT
+);
 
-----------------------------------------------------------------------
--- 4. FONCTIONS DE SÉCURITÉ (SECURITY DEFINER)
-----------------------------------------------------------------------
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -- ============================================
+-- TABLE: public.preregistrations
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.preregistrations (
+    id BIGINT NOT NULL DEFAULT nextval('preregistrations_id_seq'::regclass),
+    email TEXT NOT NULL,
+    full_name TEXT NOT NULL,
+    phone TEXT,
+    interested_features ARRAY DEFAULT '{}'::text[],
+    referral_source TEXT,
+    marketing_consent BOOLEAN NOT NULL DEFAULT false,
+    status TEXT NOT NULL DEFAULT 'pending'::text,
+    priority_score INTEGER DEFAULT 0,
+    notes TEXT,
+    ip_address INET,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
--- Fonction pour vérifier si un utilisateur est admin (sans récursion RLS)
-CREATE OR REPLACE FUNCTION is_user_admin(user_id_param UUID)
-RETURNS BOOLEAN
-LANGUAGE sql
-SECURITY DEFINER
-AS $$
-  SELECT EXISTS (
-    SELECT 1 
-    FROM user_roles ur
-    JOIN roles r ON ur.role_id = r.id
-    WHERE ur.user_id = user_id_param
-    AND r.name = 'admin'
-  );
-$$;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -- ============================================
+-- TABLE: public.profiles
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID NOT NULL,
+    email TEXT NOT NULL,
+    full_name TEXT,
+    phone TEXT,
+    avatar_url TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
--- Fonction pour vérifier si un utilisateur a un rôle spécifique
-CREATE OR REPLACE FUNCTION has_role(user_id_param UUID, role_name_param TEXT)
-RETURNS BOOLEAN
-LANGUAGE sql
-SECURITY DEFINER
-AS $$
-  SELECT EXISTS (
-    SELECT 1 
-    FROM user_roles ur
-    JOIN roles r ON ur.role_id = r.id
-    WHERE ur.user_id = user_id_param
-    AND r.name = role_name_param
-  );
-$$;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- ============================================
+-- TABLE: public.roles
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.roles (
+    id INTEGER NOT NULL DEFAULT nextval('roles_id_seq'::regclass),
+    name TEXT NOT NULL,
+    description TEXT,
+    permissions JSONB NOT NULL DEFAULT '{}'::jsonb
+);
 
--- Fonction pour ajouter un rôle admin à un utilisateur
-CREATE OR REPLACE FUNCTION add_admin_role(user_id_param UUID)
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -- ============================================
+-- TABLE: public.saving_parameters
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.saving_parameters (
+    id INTEGER NOT NULL DEFAULT nextval('saving_parameters_id_seq'::regclass),
+    saving_type_id INTEGER NOT NULL,
+    saving_rate NUMERIC(4,3) NOT NULL,
+    management_fee NUMERIC(4,3) NOT NULL,
+    effective_from DATE NOT NULL DEFAULT CURRENT_DATE,
+    effective_to DATE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -- ============================================
+-- TABLE: public.saving_statistics
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.saving_statistics (
+    saving_type TEXT,
+    total_users BIGINT
+);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- ============================================
+-- TABLE: public.saving_types
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.saving_types (
+    id INTEGER NOT NULL DEFAULT nextval('saving_types_id_seq'::regclass),
+    name TEXT NOT NULL,
+    description TEXT,
+    lock_period_months INTEGER NOT NULL DEFAULT 0,
+    withdrawal_frequency TEXT NOT NULL,
+    interest_rate NUMERIC(5,4) NOT NULL DEFAULT 0,
+    min_balance NUMERIC(12,2) NOT NULL DEFAULT 0,
+    active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- ============================================
+-- TABLE: public.subscriptions
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.subscriptions (
+    id INTEGER NOT NULL DEFAULT nextval('subscriptions_id_seq'::regclass),
+    user_id UUID NOT NULL,
+    plan_id INTEGER NOT NULL,
+    purchase_date TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expiration_date TIMESTAMPTZ NOT NULL,
+    status TEXT NOT NULL,
+    transaction_id BIGINT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -- ============================================
+-- TABLE: public.subscriptions_history
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.subscriptions_history (
+    history_id BIGINT NOT NULL DEFAULT nextval('subscriptions_history_history_id_seq'::regclass),
+    subscription_id INTEGER NOT NULL,
+    user_id UUID NOT NULL,
+    plan_id INTEGER NOT NULL,
+    event TEXT NOT NULL,
+    details JSONB,
+    event_time TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -- ============================================
+-- TABLE: public.telecom_operators
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.telecom_operators (
+    id INTEGER NOT NULL DEFAULT nextval('telecom_operators_id_seq'::regclass),
+    name TEXT NOT NULL,
+    logo_url TEXT,
+    commission_rate NUMERIC(5,4) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -- ============================================
+-- TABLE: public.transactions
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.transactions (
+    id BIGINT NOT NULL DEFAULT nextval('transactions_id_seq'::regclass),
+    user_id UUID NOT NULL,
+    transaction_type TEXT NOT NULL,
+    amount_paid NUMERIC(12,2) NOT NULL,
+    data_cost NUMERIC(12,2) NOT NULL,
+    saving_amount NUMERIC(12,2) NOT NULL,
+    management_fee_rate NUMERIC(4,3) NOT NULL,
+    management_fee_amount NUMERIC(12,2),
+    net_saving NUMERIC(12,2),
+    reference_id TEXT,
+    status TEXT NOT NULL DEFAULT 'completed'::text,
+    payment_method TEXT,
+    metadata JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| -- ============================================
+-- TABLE: public.transactions_with_users
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.transactions_with_users (
+    id BIGINT,
+    user_id UUID,
+    transaction_type TEXT,
+    amount_paid NUMERIC(12,2),
+    net_saving NUMERIC(12,2),
+    created_at TIMESTAMPTZ,
+    email TEXT,
+    phone TEXT,
+    full_name TEXT
+);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -- ============================================
+-- TABLE: public.user_profiles_with_roles
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.user_profiles_with_roles (
+    id UUID,
+    email TEXT,
+    full_name TEXT,
+    phone TEXT,
+    created_at TIMESTAMPTZ,
+    roles ARRAY
+);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- ============================================
+-- TABLE: public.user_roles
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.user_roles (
+    user_id UUID NOT NULL,
+    role_id INTEGER NOT NULL,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    assigned_by UUID
+);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -- ============================================
+-- TABLE: public.user_savings
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.user_savings (
+    id BIGINT NOT NULL DEFAULT nextval('user_savings_id_seq'::regclass),
+    user_id UUID NOT NULL,
+    saving_type_id INTEGER NOT NULL,
+    balance NUMERIC(14,2) NOT NULL DEFAULT 0,
+    total_saved NUMERIC(14,2) NOT NULL DEFAULT 0,
+    total_withdrawn NUMERIC(14,2) NOT NULL DEFAULT 0,
+    last_interest_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -- PRIMARY KEY: automatic_savings.automatic_savings_pkey
+ALTER TABLE automatic_savings ADD CONSTRAINT automatic_savings_pkey PRIMARY KEY (id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -- PRIMARY KEY: data_plans.data_plans_pkey
+ALTER TABLE data_plans ADD CONSTRAINT data_plans_pkey PRIMARY KEY (id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -- PRIMARY KEY: preregistrations.preregistrations_pkey
+ALTER TABLE preregistrations ADD CONSTRAINT preregistrations_pkey PRIMARY KEY (id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -- PRIMARY KEY: profiles.profiles_pkey
+ALTER TABLE profiles ADD CONSTRAINT profiles_pkey PRIMARY KEY (id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -- PRIMARY KEY: roles.roles_pkey
+ALTER TABLE roles ADD CONSTRAINT roles_pkey PRIMARY KEY (id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -- PRIMARY KEY: saving_parameters.saving_parameters_pkey
+ALTER TABLE saving_parameters ADD CONSTRAINT saving_parameters_pkey PRIMARY KEY (id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -- PRIMARY KEY: saving_types.saving_types_pkey
+ALTER TABLE saving_types ADD CONSTRAINT saving_types_pkey PRIMARY KEY (id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -- PRIMARY KEY: subscriptions.subscriptions_pkey
+ALTER TABLE subscriptions ADD CONSTRAINT subscriptions_pkey PRIMARY KEY (id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -- PRIMARY KEY: subscriptions_history.subscriptions_history_pkey
+ALTER TABLE subscriptions_history ADD CONSTRAINT subscriptions_history_pkey PRIMARY KEY (history_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- PRIMARY KEY: telecom_operators.telecom_operators_pkey
+ALTER TABLE telecom_operators ADD CONSTRAINT telecom_operators_pkey PRIMARY KEY (id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -- PRIMARY KEY: transactions.transactions_pkey
+ALTER TABLE transactions ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -- PRIMARY KEY: user_roles.user_roles_pkey
+ALTER TABLE user_roles ADD CONSTRAINT user_roles_pkey PRIMARY KEY (user_id, role_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -- PRIMARY KEY: user_savings.user_savings_pkey
+ALTER TABLE user_savings ADD CONSTRAINT user_savings_pkey PRIMARY KEY (id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -- FOREIGN KEY: automatic_savings.automatic_savings_transaction_id_fkey
+ALTER TABLE automatic_savings ADD CONSTRAINT automatic_savings_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- FOREIGN KEY: data_plans.data_plans_operator_id_fkey
+ALTER TABLE data_plans ADD CONSTRAINT data_plans_operator_id_fkey FOREIGN KEY (operator_id) REFERENCES telecom_operators(id) ON DELETE CASCADE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- FOREIGN KEY: saving_parameters.saving_parameters_saving_type_id_fkey
+ALTER TABLE saving_parameters ADD CONSTRAINT saving_parameters_saving_type_id_fkey FOREIGN KEY (saving_type_id) REFERENCES saving_types(id) ON DELETE CASCADE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- FOREIGN KEY: subscriptions.subscriptions_plan_id_fkey
+ALTER TABLE subscriptions ADD CONSTRAINT subscriptions_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES data_plans(id) ON DELETE CASCADE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -- FOREIGN KEY: subscriptions.subscriptions_user_id_fkey
+ALTER TABLE subscriptions ADD CONSTRAINT subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -- FOREIGN KEY: transactions.transactions_user_id_fkey
+ALTER TABLE transactions ADD CONSTRAINT transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -- FOREIGN KEY: user_roles.user_roles_assigned_by_fkey
+ALTER TABLE user_roles ADD CONSTRAINT user_roles_assigned_by_fkey FOREIGN KEY (assigned_by) REFERENCES profiles(id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| -- FOREIGN KEY: user_roles.user_roles_role_id_fkey
+ALTER TABLE user_roles ADD CONSTRAINT user_roles_role_id_fkey FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -- FOREIGN KEY: user_roles.user_roles_user_id_fkey
+ALTER TABLE user_roles ADD CONSTRAINT user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -- FOREIGN KEY: user_savings.user_savings_saving_type_id_fkey
+ALTER TABLE user_savings ADD CONSTRAINT user_savings_saving_type_id_fkey FOREIGN KEY (saving_type_id) REFERENCES saving_types(id) ON DELETE CASCADE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -- FOREIGN KEY: user_savings.user_savings_user_id_fkey
+ALTER TABLE user_savings ADD CONSTRAINT user_savings_user_id_fkey FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -- UNIQUE CONSTRAINT: data_plans.data_plans_operator_id_name_key
+ALTER TABLE data_plans ADD CONSTRAINT data_plans_operator_id_name_key UNIQUE (operator_id, name);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -- UNIQUE CONSTRAINT: preregistrations.preregistrations_email_key
+ALTER TABLE preregistrations ADD CONSTRAINT preregistrations_email_key UNIQUE (email);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- UNIQUE CONSTRAINT: profiles.profiles_email_key
+ALTER TABLE profiles ADD CONSTRAINT profiles_email_key UNIQUE (email);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- UNIQUE CONSTRAINT: roles.roles_name_key
+ALTER TABLE roles ADD CONSTRAINT roles_name_key UNIQUE (name);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -- UNIQUE CONSTRAINT: saving_types.saving_types_name_key
+ALTER TABLE saving_types ADD CONSTRAINT saving_types_name_key UNIQUE (name);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -- UNIQUE CONSTRAINT: telecom_operators.telecom_operators_name_key
+ALTER TABLE telecom_operators ADD CONSTRAINT telecom_operators_name_key UNIQUE (name);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -- UNIQUE CONSTRAINT: user_savings.user_savings_user_id_saving_type_id_key
+ALTER TABLE user_savings ADD CONSTRAINT user_savings_user_id_saving_type_id_key UNIQUE (user_id, saving_type_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -- INDEX: idx_automatic_savings_status ON automatic_savings
+CREATE INDEX idx_automatic_savings_status ON public.automatic_savings USING btree (status);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -- INDEX: idx_automatic_savings_transaction_id ON automatic_savings
+CREATE INDEX idx_automatic_savings_transaction_id ON public.automatic_savings USING btree (transaction_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -- INDEX: idx_automatic_savings_user_id ON automatic_savings
+CREATE INDEX idx_automatic_savings_user_id ON public.automatic_savings USING btree (user_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -- INDEX: data_plans_operator_id_name_key ON data_plans
+CREATE UNIQUE INDEX data_plans_operator_id_name_key ON public.data_plans USING btree (operator_id, name);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -- INDEX: idx_data_plans_operator_id ON data_plans
+CREATE INDEX idx_data_plans_operator_id ON public.data_plans USING btree (operator_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -- INDEX: idx_data_plans_price ON data_plans
+CREATE INDEX idx_data_plans_price ON public.data_plans USING btree (price);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- INDEX: idx_data_plans_volume ON data_plans
+CREATE INDEX idx_data_plans_volume ON public.data_plans USING btree (volume_mb);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -- INDEX: idx_preregistrations_created_at ON preregistrations
+CREATE INDEX idx_preregistrations_created_at ON public.preregistrations USING btree (created_at);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -- INDEX: idx_preregistrations_email ON preregistrations
+CREATE INDEX idx_preregistrations_email ON public.preregistrations USING btree (email);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -- INDEX: idx_preregistrations_priority ON preregistrations
+CREATE INDEX idx_preregistrations_priority ON public.preregistrations USING btree (priority_score DESC);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| -- INDEX: idx_preregistrations_status ON preregistrations
+CREATE INDEX idx_preregistrations_status ON public.preregistrations USING btree (status);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -- INDEX: idx_preregistrations_status_created ON preregistrations
+CREATE INDEX idx_preregistrations_status_created ON public.preregistrations USING btree (status, created_at);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -- INDEX: preregistrations_email_key ON preregistrations
+CREATE UNIQUE INDEX preregistrations_email_key ON public.preregistrations USING btree (email);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -- INDEX: idx_profiles_created_at_desc ON profiles
+CREATE INDEX idx_profiles_created_at_desc ON public.profiles USING btree (created_at DESC);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -- INDEX: profiles_email_key ON profiles
+CREATE UNIQUE INDEX profiles_email_key ON public.profiles USING btree (email);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -- INDEX: roles_name_key ON roles
+CREATE UNIQUE INDEX roles_name_key ON public.roles USING btree (name);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- INDEX: idx_saving_parameters_effective ON saving_parameters
+CREATE INDEX idx_saving_parameters_effective ON public.saving_parameters USING btree (effective_from, effective_to);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -- INDEX: idx_saving_parameters_type_id ON saving_parameters
+CREATE INDEX idx_saving_parameters_type_id ON public.saving_parameters USING btree (saving_type_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -- INDEX: saving_types_name_key ON saving_types
+CREATE UNIQUE INDEX saving_types_name_key ON public.saving_types USING btree (name);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| -- INDEX: idx_subscriptions_expiration ON subscriptions
+CREATE INDEX idx_subscriptions_expiration ON public.subscriptions USING btree (expiration_date);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- INDEX: idx_subscriptions_plan_id ON subscriptions
+CREATE INDEX idx_subscriptions_plan_id ON public.subscriptions USING btree (plan_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -- INDEX: idx_subscriptions_status ON subscriptions
+CREATE INDEX idx_subscriptions_status ON public.subscriptions USING btree (status);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -- INDEX: idx_subscriptions_user_id ON subscriptions
+CREATE INDEX idx_subscriptions_user_id ON public.subscriptions USING btree (user_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -- INDEX: idx_subscriptions_history_subscription_id ON subscriptions_history
+CREATE INDEX idx_subscriptions_history_subscription_id ON public.subscriptions_history USING btree (subscription_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -- INDEX: idx_subscriptions_history_user_id ON subscriptions_history
+CREATE INDEX idx_subscriptions_history_user_id ON public.subscriptions_history USING btree (user_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -- INDEX: telecom_operators_name_key ON telecom_operators
+CREATE UNIQUE INDEX telecom_operators_name_key ON public.telecom_operators USING btree (name);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- INDEX: idx_transactions_created_at ON transactions
+CREATE INDEX idx_transactions_created_at ON public.transactions USING btree (created_at);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -- INDEX: idx_transactions_created_at_desc ON transactions
+CREATE INDEX idx_transactions_created_at_desc ON public.transactions USING btree (created_at DESC);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -- INDEX: idx_transactions_status ON transactions
+CREATE INDEX idx_transactions_status ON public.transactions USING btree (status);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -- INDEX: idx_transactions_type ON transactions
+CREATE INDEX idx_transactions_type ON public.transactions USING btree (transaction_type);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -- INDEX: idx_transactions_user_id ON transactions
+CREATE INDEX idx_transactions_user_id ON public.transactions USING btree (user_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- INDEX: idx_user_roles_assigned_by ON user_roles
+CREATE INDEX idx_user_roles_assigned_by ON public.user_roles USING btree (assigned_by);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -- INDEX: idx_user_roles_role_id ON user_roles
+CREATE INDEX idx_user_roles_role_id ON public.user_roles USING btree (role_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -- INDEX: idx_user_roles_user_id ON user_roles
+CREATE INDEX idx_user_roles_user_id ON public.user_roles USING btree (user_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -- INDEX: idx_user_roles_user_role_composite ON user_roles
+CREATE INDEX idx_user_roles_user_role_composite ON public.user_roles USING btree (user_id, role_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -- INDEX: idx_user_savings_balance ON user_savings
+CREATE INDEX idx_user_savings_balance ON public.user_savings USING btree (balance);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- INDEX: idx_user_savings_type_id ON user_savings
+CREATE INDEX idx_user_savings_type_id ON public.user_savings USING btree (saving_type_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -- INDEX: idx_user_savings_user_balance ON user_savings
+CREATE INDEX idx_user_savings_user_balance ON public.user_savings USING btree (user_id, balance DESC);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -- INDEX: idx_user_savings_user_id ON user_savings
+CREATE INDEX idx_user_savings_user_id ON public.user_savings USING btree (user_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- INDEX: user_savings_user_id_saving_type_id_key ON user_savings
+CREATE UNIQUE INDEX user_savings_user_id_saving_type_id_key ON public.user_savings USING btree (user_id, saving_type_id);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| -- SEQUENCE: data_plans_id_seq
+CREATE SEQUENCE IF NOT EXISTS data_plans_id_seq START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 NO CYCLE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -- SEQUENCE: preregistrations_id_seq
+CREATE SEQUENCE IF NOT EXISTS preregistrations_id_seq START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 NO CYCLE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- SEQUENCE: roles_id_seq
+CREATE SEQUENCE IF NOT EXISTS roles_id_seq START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 NO CYCLE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -- SEQUENCE: saving_parameters_id_seq
+CREATE SEQUENCE IF NOT EXISTS saving_parameters_id_seq START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 NO CYCLE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -- SEQUENCE: saving_types_id_seq
+CREATE SEQUENCE IF NOT EXISTS saving_types_id_seq START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 NO CYCLE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -- SEQUENCE: subscriptions_history_history_id_seq
+CREATE SEQUENCE IF NOT EXISTS subscriptions_history_history_id_seq START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 NO CYCLE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -- SEQUENCE: subscriptions_id_seq
+CREATE SEQUENCE IF NOT EXISTS subscriptions_id_seq START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 NO CYCLE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -- SEQUENCE: telecom_operators_id_seq
+CREATE SEQUENCE IF NOT EXISTS telecom_operators_id_seq START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 NO CYCLE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -- SEQUENCE: transactions_id_seq
+CREATE SEQUENCE IF NOT EXISTS transactions_id_seq START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 NO CYCLE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -- SEQUENCE: user_savings_id_seq
+CREATE SEQUENCE IF NOT EXISTS user_savings_id_seq START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 NO CYCLE;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -- ============================================
+-- FUNCTION: add_admin_role
+-- ============================================
+CREATE OR REPLACE FUNCTION public.add_admin_role(user_id_param uuid)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 DECLARE
   admin_role_id INT;
 BEGIN
@@ -132,254 +647,18 @@ EXCEPTION
   WHEN OTHERS THEN
     RETURN FALSE;
 END;
-$$;
+$function$
+;
 
-----------------------------------------------------------------------
--- 5. OPÉRATEURS TÉLÉCOM ET FORFAITS
-----------------------------------------------------------------------
-
-CREATE TABLE public.telecom_operators (
-  id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE CHECK (name IN ('Telecel', 'Orange', 'Moov')),
-  logo_url TEXT,
-  commission_rate NUMERIC(5,4) NOT NULL CHECK (commission_rate >= 0),
-  active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE TRIGGER trg_operators_updated_at
-BEFORE UPDATE ON public.telecom_operators
-FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-
-CREATE TABLE public.data_plans (
-  id SERIAL PRIMARY KEY,
-  operator_id INT NOT NULL REFERENCES public.telecom_operators(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  volume_mb INT NOT NULL CHECK (volume_mb > 0),
-  price NUMERIC(12,2) NOT NULL CHECK (price > 0),
-  validity_days INT NOT NULL CHECK (validity_days > 0),
-  is_popular BOOLEAN DEFAULT false,
-  active BOOLEAN NOT NULL DEFAULT true,
-  description TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (operator_id, name)
-);
-
-CREATE TRIGGER trg_data_plans_updated_at
-BEFORE UPDATE ON public.data_plans
-FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-
-CREATE INDEX idx_data_plans_operator_id ON public.data_plans(operator_id);
-CREATE INDEX idx_data_plans_price ON public.data_plans(price);
-CREATE INDEX idx_data_plans_volume ON public.data_plans(volume_mb);
-
--- Insertion des opérateurs de base
-INSERT INTO public.telecom_operators (name, commission_rate) VALUES
-('Telecel', 0.05),
-('Orange', 0.05),
-('Moov', 0.05)
-ON CONFLICT (name) DO NOTHING;
-
-----------------------------------------------------------------------
--- 6. TYPES D'ÉPARGNE ET PARAMÈTRES
-----------------------------------------------------------------------
-
-CREATE TABLE public.saving_types (
-  id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE CHECK (name IN ('bloquée', 'semi-bloquée', 'libre')),
-  description TEXT,
-  lock_period_months INT NOT NULL DEFAULT 0 CHECK (lock_period_months >= 0),
-  withdrawal_frequency TEXT NOT NULL,
-  interest_rate NUMERIC(5,4) NOT NULL DEFAULT 0 CHECK (interest_rate >= 0),
-  min_balance NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (min_balance >= 0),
-  active BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE TRIGGER trg_saving_types_updated_at
-BEFORE UPDATE ON public.saving_types
-FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-
-CREATE TABLE public.saving_parameters (
-  id SERIAL PRIMARY KEY,
-  saving_type_id INT NOT NULL REFERENCES public.saving_types(id) ON DELETE CASCADE,
-  saving_rate NUMERIC(4,3) NOT NULL CHECK (saving_rate BETWEEN 0.01 AND 0.9),
-  management_fee NUMERIC(4,3) NOT NULL CHECK (management_fee >= 0),
-  effective_from DATE NOT NULL DEFAULT CURRENT_DATE,
-  effective_to DATE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT valid_date_range CHECK (effective_to IS NULL OR effective_to > effective_from)
-);
-
-CREATE TRIGGER trg_saving_parameters_updated_at
-BEFORE UPDATE ON public.saving_parameters
-FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-
-CREATE INDEX idx_saving_parameters_type_id ON public.saving_parameters(saving_type_id);
-CREATE INDEX idx_saving_parameters_effective ON public.saving_parameters(effective_from, effective_to);
-
--- Insertion des types d'épargne de base
-INSERT INTO public.saving_types (name, description, lock_period_months, withdrawal_frequency, interest_rate) VALUES
-('bloquée', 'Épargne bloquée pour une période fixe avec rendement élevé', 12, 'Après période de blocage', 0.05),
-('semi-bloquée', 'Épargne avec retrait limité et rendement moyen', 6, 'Trimestrielle', 0.03),
-('libre', 'Épargne avec retrait libre et rendement faible', 0, 'À tout moment', 0.01)
-ON CONFLICT (name) DO NOTHING;
-
--- Paramètres d'épargne initiaux
-INSERT INTO public.saving_parameters (saving_type_id, saving_rate, management_fee) 
-SELECT id, 
-  CASE 
-    WHEN name = 'bloquée' THEN 0.15
-    WHEN name = 'semi-bloquée' THEN 0.10
-    ELSE 0.05
-  END as saving_rate,
-  0.01 as management_fee
-FROM public.saving_types
-ON CONFLICT DO NOTHING;
-
-----------------------------------------------------------------------
--- 7. ÉPARGNES UTILISATEURS
-----------------------------------------------------------------------
-
-CREATE TABLE public.user_savings (
-  id BIGSERIAL PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  saving_type_id INT NOT NULL REFERENCES public.saving_types(id) ON DELETE CASCADE,
-  balance NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (balance >= 0),
-  total_saved NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (total_saved >= 0),
-  total_withdrawn NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (total_withdrawn >= 0),
-  last_interest_date DATE NOT NULL DEFAULT CURRENT_DATE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (user_id, saving_type_id)
-);
-
-CREATE TRIGGER trg_user_savings_updated_at
-BEFORE UPDATE ON public.user_savings
-FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-
-CREATE INDEX idx_user_savings_user_id ON public.user_savings(user_id);
-CREATE INDEX idx_user_savings_type_id ON public.user_savings(saving_type_id);
-CREATE INDEX idx_user_savings_balance ON public.user_savings(balance);
-
-----------------------------------------------------------------------
--- 8. ABONNEMENTS ET HISTORIQUE
-----------------------------------------------------------------------
-
-CREATE TABLE public.subscriptions (
-  id SERIAL PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  plan_id INT NOT NULL REFERENCES public.data_plans(id) ON DELETE CASCADE,
-  purchase_date TIMESTAMPTZ NOT NULL DEFAULT now(),
-  expiration_date TIMESTAMPTZ NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('active', 'expired', 'cancelled')),
-  transaction_id BIGINT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE TRIGGER trg_subscriptions_updated_at
-BEFORE UPDATE ON public.subscriptions
-FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-
-CREATE INDEX idx_subscriptions_user_id ON public.subscriptions(user_id);
-CREATE INDEX idx_subscriptions_plan_id ON public.subscriptions(plan_id);
-CREATE INDEX idx_subscriptions_status ON public.subscriptions(status);
-CREATE INDEX idx_subscriptions_expiration ON public.subscriptions(expiration_date);
-
--- Historique des abonnements pour audit
-CREATE TABLE public.subscriptions_history (
-  history_id BIGSERIAL PRIMARY KEY,
-  subscription_id INT NOT NULL,
-  user_id UUID NOT NULL,
-  plan_id INT NOT NULL,
-  event TEXT NOT NULL,
-  details JSONB,
-  event_time TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_subscriptions_history_subscription_id ON public.subscriptions_history(subscription_id);
-CREATE INDEX idx_subscriptions_history_user_id ON public.subscriptions_history(user_id);
-
-----------------------------------------------------------------------
--- 9. TRANSACTIONS
-----------------------------------------------------------------------
-
-CREATE TABLE public.transactions (
-  id BIGSERIAL PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  transaction_type TEXT NOT NULL CHECK (transaction_type IN ('purchase', 'withdrawal', 'deposit', 'interest')),
-  amount_paid NUMERIC(12,2) NOT NULL CHECK (amount_paid >= 0),
-  data_cost NUMERIC(12,2) NOT NULL CHECK (data_cost >= 0),
-  saving_amount NUMERIC(12,2) NOT NULL CHECK (saving_amount >= 0),
-  management_fee_rate NUMERIC(4,3) NOT NULL CHECK (management_fee_rate >= 0),
-  management_fee_amount NUMERIC(12,2) GENERATED ALWAYS AS (saving_amount * management_fee_rate) STORED,
-  net_saving NUMERIC(12,2) GENERATED ALWAYS AS (saving_amount - (saving_amount * management_fee_rate)) STORED,
-  reference_id TEXT,
-  status TEXT NOT NULL DEFAULT 'completed' CHECK (status IN ('pending', 'completed', 'failed', 'refunded')),
-  payment_method TEXT,
-  metadata JSONB,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE TRIGGER trg_transactions_updated_at
-BEFORE UPDATE ON public.transactions
-FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-
--- Indexation
-CREATE INDEX idx_transactions_user_id ON public.transactions(user_id);
-CREATE INDEX idx_transactions_created_at ON public.transactions(created_at);
-CREATE INDEX idx_transactions_type ON public.transactions(transaction_type);
-CREATE INDEX idx_transactions_status ON public.transactions(status);
-
-----------------------------------------------------------------------
--- 10. DÉCLENCHEURS FONCTIONNELS
-----------------------------------------------------------------------
-
--- Déclencheur pour enregistrer l'historique des abonnements
-CREATE OR REPLACE FUNCTION public.log_subscription_change() 
-RETURNS TRIGGER AS $$
-BEGIN
-  IF TG_OP = 'DELETE' THEN
-    INSERT INTO public.subscriptions_history(
-      subscription_id, user_id, plan_id, event, details, event_time
-    ) VALUES (
-      OLD.id, OLD.user_id, OLD.plan_id, 'DELETE', 
-      jsonb_build_object(
-        'expiration_date', OLD.expiration_date,
-        'status', OLD.status
-      ),
-      now()
-    );
-    RETURN OLD;
-  ELSE
-    INSERT INTO public.subscriptions_history(
-      subscription_id, user_id, plan_id, event, details, event_time
-    ) VALUES (
-      NEW.id, NEW.user_id, NEW.plan_id, TG_OP, 
-      jsonb_build_object(
-        'expiration_date', NEW.expiration_date,
-        'status', NEW.status
-      ),
-      now()
-    );
-    RETURN NEW;
-  END IF;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_subscriptions_audit
-AFTER INSERT OR UPDATE OR DELETE ON public.subscriptions
-FOR EACH ROW EXECUTE FUNCTION public.log_subscription_change();
-
--- Déclencheur pour appliquer l'épargne lors d'une transaction
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -- ============================================
+-- FUNCTION: apply_transaction_savings
+-- ============================================
 CREATE OR REPLACE FUNCTION public.apply_transaction_savings()
-RETURNS TRIGGER AS $$
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 DECLARE 
   default_saving_type_id INT;
   user_saving_record RECORD;
@@ -428,15 +707,18 @@ BEGIN
   
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$function$
+;
 
-CREATE TRIGGER trg_apply_savings
-AFTER INSERT ON public.transactions
-FOR EACH ROW EXECUTE FUNCTION public.apply_transaction_savings();
-
--- Fonction pour calculer les intérêts mensuels (à exécuter via un cron job)
-CREATE OR REPLACE FUNCTION calculate_monthly_interest()
-RETURNS INTEGER AS $$
+                                                                                                                                                                                                                                                                                                                                                                            |
+| -- ============================================
+-- FUNCTION: calculate_monthly_interest
+-- ============================================
+CREATE OR REPLACE FUNCTION public.calculate_monthly_interest()
+ RETURNS integer
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 DECLARE
   savings_record RECORD;
   interest_amount NUMERIC(12,2);
@@ -496,80 +778,18 @@ BEGIN
   
   RETURN counter;
 END;
-$$ LANGUAGE plpgsql;
+$function$
+;
 
--- Déclencheur pour créer un profil utilisateur automatiquement lors de l'inscription
-CREATE OR REPLACE FUNCTION public.handle_new_user() 
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, email, full_name, avatar_url)
-  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'avatar_url');
-  
-  -- Assigner automatiquement le rôle utilisateur
-  INSERT INTO public.user_roles (user_id, role_id)
-  SELECT NEW.id, id FROM public.roles WHERE name = 'user';
-  
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
--- Déclencheur pour mettre à jour le profil quand l'utilisateur change
-CREATE OR REPLACE FUNCTION public.handle_user_update() 
-RETURNS TRIGGER AS $$
-BEGIN
-  UPDATE public.profiles
-  SET 
-    email = NEW.email,
-    updated_at = now()
-  WHERE id = NEW.id;
-  
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE TRIGGER on_auth_user_updated
-  AFTER UPDATE ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_user_update();
-
-----------------------------------------------------------------------
--- 11. TABLE DE PRÉINSCRIPTION
-----------------------------------------------------------------------
-
--- Table pour les préinscriptions avant le lancement officiel
-CREATE TABLE public.preregistrations (
-  id BIGSERIAL PRIMARY KEY,
-  email TEXT NOT NULL UNIQUE CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
-  full_name TEXT NOT NULL CHECK (length(full_name) >= 2),
-  phone TEXT CHECK (phone IS NULL OR length(phone) >= 8),
-  interested_features TEXT[] DEFAULT '{}',
-  referral_source TEXT CHECK (referral_source IN ('social_media', 'friend', 'web_search', 'advertisement', 'other')),
-  marketing_consent BOOLEAN NOT NULL DEFAULT false,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'contacted', 'registered', 'unsubscribed')),
-  priority_score INTEGER DEFAULT 0 CHECK (priority_score >= 0),
-  notes TEXT,
-  ip_address INET,
-  user_agent TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE TRIGGER trg_preregistrations_updated_at
-BEFORE UPDATE ON public.preregistrations
-FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-
--- Indexation pour les préinscriptions
-CREATE INDEX idx_preregistrations_email ON public.preregistrations(email);
-CREATE INDEX idx_preregistrations_status ON public.preregistrations(status);
-CREATE INDEX idx_preregistrations_created_at ON public.preregistrations(created_at);
-CREATE INDEX idx_preregistrations_priority ON public.preregistrations(priority_score DESC);
-
--- Fonction pour calculer le score de priorité automatiquement
-CREATE OR REPLACE FUNCTION calculate_preregistration_priority()
-RETURNS TRIGGER AS $$
+ |
+| -- ============================================
+-- FUNCTION: calculate_preregistration_priority
+-- ============================================
+CREATE OR REPLACE FUNCTION public.calculate_preregistration_priority()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 BEGIN
   -- Score de base
   NEW.priority_score := 10;
@@ -596,205 +816,668 @@ BEGIN
   
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$function$
+;
 
-CREATE TRIGGER trg_calculate_preregistration_priority
-BEFORE INSERT OR UPDATE ON public.preregistrations
-FOR EACH ROW EXECUTE FUNCTION calculate_preregistration_priority();
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -- ============================================
+-- FUNCTION: get_user_permissions
+-- ============================================
+CREATE OR REPLACE FUNCTION public.get_user_permissions(user_id_param uuid)
+ RETURNS TABLE(is_admin boolean, is_support boolean, is_user boolean, all_roles text[])
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  SELECT
+    bool_or(r.name = 'admin') as is_admin,
+    bool_or(r.name = 'support') as is_support,
+    bool_or(r.name = 'user') as is_user,
+    array_agg(r.name) as all_roles
+  FROM user_roles ur
+  JOIN roles r ON ur.role_id = r.id
+  WHERE ur.user_id = user_id_param;
+$function$
+;
 
--- Vue pour les statistiques de préinscription
-CREATE VIEW preregistration_stats AS
-SELECT
-  count(*) as total_preregistrations,
-  count(*) FILTER (WHERE status = 'pending') as pending_count,
-  count(*) FILTER (WHERE marketing_consent = true) as marketing_consent_count,
-  count(*) FILTER (WHERE phone IS NOT NULL) as with_phone_count,
-  avg(priority_score) as average_priority_score,
-  count(*) FILTER (WHERE referral_source = 'friend') as friend_referrals,
-  count(*) FILTER (WHERE referral_source = 'social_media') as social_media_referrals,
-  count(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') as last_week_registrations,
-  count(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '30 days') as last_month_registrations
-FROM preregistrations;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -- ============================================
+-- FUNCTION: get_user_roles_optimized
+-- ============================================
+CREATE OR REPLACE FUNCTION public.get_user_roles_optimized(user_id_param uuid)
+ RETURNS TABLE(role_name text)
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  SELECT r.name
+  FROM user_roles ur
+  JOIN roles r ON ur.role_id = r.id
+  WHERE ur.user_id = user_id_param;
+$function$
+;
 
-----------------------------------------------------------------------
--- 12. POLITIQUES DE SÉCURITÉ (RLS)
-----------------------------------------------------------------------
-
--- Activer RLS sur toutes les tables
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.telecom_operators ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.data_plans ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.saving_types ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.saving_parameters ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_savings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.subscriptions_history ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.preregistrations ENABLE ROW LEVEL SECURITY;
-
--- Politiques pour profils
-CREATE POLICY profiles_select_self ON public.profiles
-  FOR SELECT USING (id = auth.uid());
-CREATE POLICY profiles_update_self ON public.profiles
-  FOR UPDATE USING (id = auth.uid());
-CREATE POLICY profiles_insert_self ON public.profiles
-  FOR INSERT WITH CHECK (id = auth.uid());
-CREATE POLICY profiles_admin ON public.profiles
-  FOR ALL USING (is_user_admin(auth.uid()));
-CREATE POLICY profiles_support_select ON public.profiles
-  FOR SELECT USING (has_role(auth.uid(), 'support'));
-
--- Politiques pour rôles (admin uniquement)
-CREATE POLICY roles_admin ON public.roles
-  FOR ALL USING (is_user_admin(auth.uid()));
-CREATE POLICY roles_select_all ON public.roles
-  FOR SELECT USING (auth.uid() IS NOT NULL);
-
--- Politiques pour user_roles
-CREATE POLICY user_roles_admin ON public.user_roles
-  FOR ALL USING (is_user_admin(auth.uid()));
-CREATE POLICY user_roles_select_self ON public.user_roles
-  FOR SELECT USING (user_id = auth.uid());
-
--- Politiques pour opérateurs télécom
-CREATE POLICY telecom_operators_select_all ON public.telecom_operators
-  FOR SELECT USING (true);
-CREATE POLICY telecom_operators_admin ON public.telecom_operators
-  FOR ALL USING (is_user_admin(auth.uid()));
-
--- Politiques pour forfaits data
-CREATE POLICY data_plans_select_all ON public.data_plans
-  FOR SELECT USING (true);
-CREATE POLICY data_plans_admin ON public.data_plans
-  FOR ALL USING (is_user_admin(auth.uid()));
-
--- Politiques pour types d'épargne
-CREATE POLICY saving_types_select_all ON public.saving_types
-  FOR SELECT USING (true);
-CREATE POLICY saving_types_admin ON public.saving_types
-  FOR ALL USING (is_user_admin(auth.uid()));
-
--- Politiques pour paramètres d'épargne
-CREATE POLICY saving_parameters_select_all ON public.saving_parameters
-  FOR SELECT USING (true);
-CREATE POLICY saving_parameters_admin ON public.saving_parameters
-  FOR ALL USING (is_user_admin(auth.uid()));
-
--- Politiques pour épargnes utilisateurs
-CREATE POLICY user_savings_select_self ON public.user_savings
-  FOR SELECT USING (user_id = auth.uid());
-CREATE POLICY user_savings_admin ON public.user_savings
-  FOR ALL USING (is_user_admin(auth.uid()));
-CREATE POLICY user_savings_support_select ON public.user_savings
-  FOR SELECT USING (has_role(auth.uid(), 'support'));
-
--- Politiques pour abonnements
-CREATE POLICY subscriptions_select_self ON public.subscriptions
-  FOR SELECT USING (user_id = auth.uid());
-CREATE POLICY subscriptions_insert_self ON public.subscriptions
-  FOR INSERT WITH CHECK (user_id = auth.uid());
-CREATE POLICY subscriptions_admin ON public.subscriptions
-  FOR ALL USING (is_user_admin(auth.uid()));
-CREATE POLICY subscriptions_support_select ON public.subscriptions
-  FOR SELECT USING (has_role(auth.uid(), 'support'));
-
--- Politiques pour historique des abonnements
-CREATE POLICY subscriptions_history_select_self ON public.subscriptions_history
-  FOR SELECT USING (user_id = auth.uid());
-CREATE POLICY subscriptions_history_admin ON public.subscriptions_history
-  FOR ALL USING (is_user_admin(auth.uid()));
-CREATE POLICY subscriptions_history_support ON public.subscriptions_history
-  FOR SELECT USING (has_role(auth.uid(), 'support'));
-
--- Politiques pour transactions
-CREATE POLICY transactions_select_self ON public.transactions
-  FOR SELECT USING (user_id = auth.uid());
-CREATE POLICY transactions_insert_self ON public.transactions
-  FOR INSERT WITH CHECK (user_id = auth.uid());
-CREATE POLICY transactions_admin ON public.transactions
-  FOR ALL USING (is_user_admin(auth.uid()));
-CREATE POLICY transactions_support_select ON public.transactions
-  FOR SELECT USING (has_role(auth.uid(), 'support'));
-
--- Politiques pour préinscriptions
-CREATE POLICY preregistrations_insert_public ON public.preregistrations
-  FOR INSERT WITH CHECK (true); -- Permettre à tous d'insérer
-CREATE POLICY preregistrations_admin ON public.preregistrations
-  FOR ALL USING (is_user_admin(auth.uid()));
-CREATE POLICY preregistrations_support_select ON public.preregistrations
-  FOR SELECT USING (has_role(auth.uid(), 'support'));
-
-----------------------------------------------------------------------
--- 12. VUES POUR SIMPLIFIER L'ACCÈS AUX DONNÉES
-----------------------------------------------------------------------
-
--- Vue pour les utilisateurs avec leurs rôles
-CREATE VIEW user_profiles_with_roles AS
-SELECT 
-  p.id,
-  p.email,
-  p.full_name,
-  p.phone,
-  p.created_at,
-  array_agg(r.name) as roles
-FROM profiles p
-LEFT JOIN user_roles ur ON p.id = ur.user_id
-LEFT JOIN roles r ON ur.role_id = r.id
-GROUP BY p.id, p.email, p.full_name, p.phone, p.created_at;
-
--- Vue pour les statistiques d'épargne
-CREATE VIEW saving_statistics AS
-SELECT
-  st.name as saving_type,
-  count(us.id) as total_users,
-  sum(us.balance) as total_balance,
-  avg(us.balance) as average_balance,
-  min(us.balance) as min_balance,
-  max(us.balance) as max_balance
-FROM user_savings us
-JOIN saving_types st ON us.saving_type_id = st.id
-GROUP BY st.name;
-
--- Vue pour les forfaits populaires
-CREATE VIEW popular_data_plans AS
-SELECT 
-  dp.*,
-  op.name as operator_name,
-  COUNT(s.id) as subscription_count
-FROM data_plans dp
-JOIN telecom_operators op ON dp.operator_id = op.id
-LEFT JOIN subscriptions s ON dp.id = s.plan_id AND s.status = 'active'
-WHERE dp.active = true
-GROUP BY dp.id, op.name
-ORDER BY subscription_count DESC, dp.price ASC;
-
--- Vue optimisée pour les statistiques du dashboard
-CREATE VIEW dashboard_stats AS
-SELECT
-  -- Nombre total d'utilisateurs
-  (SELECT COUNT(*) FROM profiles) as users_count,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- ============================================
+-- FUNCTION: handle_new_user
+-- ============================================
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, avatar_url)
+  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'avatar_url');
   
-  -- Montant total d'épargne
-  (SELECT COALESCE(SUM(balance), 0) FROM user_savings) as total_savings,
+  -- Assigner automatiquement le rôle utilisateur
+  INSERT INTO public.user_roles (user_id, role_id)
+  SELECT NEW.id, id FROM public.roles WHERE name = 'user';
   
-  -- Nombre total de transactions
-  (SELECT COUNT(*) FROM transactions) as transactions_count,
+  RETURN NEW;
+END;
+$function$
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -- ============================================
+-- FUNCTION: handle_user_update
+-- ============================================
+CREATE OR REPLACE FUNCTION public.handle_user_update()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+BEGIN
+  UPDATE public.profiles
+  SET 
+    email = NEW.email,
+    updated_at = now()
+  WHERE id = NEW.id;
   
-  -- Moyenne d'épargne par transaction
-  (SELECT COALESCE(AVG(net_saving), 0) FROM transactions) as average_saving,
-  
-  -- Nombre d'opérateurs
-  (SELECT COUNT(*) FROM telecom_operators WHERE active = true) as operators_count,
-  
-  -- Nombre de forfaits
-  (SELECT COUNT(*) FROM data_plans WHERE active = true) as plans_count,
-  
-  -- Transactions ce mois-ci
-  (SELECT COUNT(*) FROM transactions 
-   WHERE created_at >= date_trunc('month', CURRENT_DATE)) as transactions_this_month,
-   
-  -- Nouvel utilisateurs cette semaine
-  (SELECT COUNT(*) FROM profiles 
-   WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') as new_users_this_week;
+  RETURN NEW;
+END;
+$function$
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -- ============================================
+-- FUNCTION: has_role
+-- ============================================
+CREATE OR REPLACE FUNCTION public.has_role(user_id_param uuid, role_name_param text)
+ RETURNS boolean
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  SELECT EXISTS (
+    SELECT 1 
+    FROM user_roles ur
+    JOIN roles r ON ur.role_id = r.id
+    WHERE ur.user_id = user_id_param
+    AND r.name = role_name_param
+  );
+$function$
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -- ============================================
+-- FUNCTION: is_user_admin
+-- ============================================
+CREATE OR REPLACE FUNCTION public.is_user_admin(user_id_param uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  SELECT EXISTS (
+    SELECT 1 
+    FROM user_roles ur
+    JOIN roles r ON ur.role_id = r.id
+    WHERE ur.user_id = user_id_param
+    AND r.name = 'admin'
+  );
+$function$
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -- ============================================
+-- FUNCTION: log_subscription_change
+-- ============================================
+CREATE OR REPLACE FUNCTION public.log_subscription_change()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    INSERT INTO public.subscriptions_history(
+      subscription_id, user_id, plan_id, event, details, event_time
+    ) VALUES (
+      OLD.id, OLD.user_id, OLD.plan_id, 'DELETE', 
+      jsonb_build_object(
+        'expiration_date', OLD.expiration_date,
+        'status', OLD.status
+      ),
+      now()
+    );
+    RETURN OLD;
+  ELSE
+    INSERT INTO public.subscriptions_history(
+      subscription_id, user_id, plan_id, event, details, event_time
+    ) VALUES (
+      NEW.id, NEW.user_id, NEW.plan_id, TG_OP, 
+      jsonb_build_object(
+        'expiration_date', NEW.expiration_date,
+        'status', NEW.status
+      ),
+      now()
+    );
+    RETURN NEW;
+  END IF;
+END;
+$function$
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| -- ============================================
+-- FUNCTION: refresh_dashboard_stats
+-- ============================================
+CREATE OR REPLACE FUNCTION public.refresh_dashboard_stats()
+ RETURNS TABLE(users_count bigint, total_savings numeric, transactions_count bigint, average_saving numeric, operators_count bigint, plans_count bigint, transactions_this_month bigint, new_users_this_week bigint)
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  SELECT
+    (SELECT COUNT(*) FROM profiles) as users_count,
+    (SELECT COALESCE(SUM(balance), 0) FROM user_savings) as total_savings,
+    (SELECT COUNT(*) FROM transactions) as transactions_count,
+    (SELECT COALESCE(AVG(net_saving), 0) FROM transactions) as average_saving,
+    (SELECT COUNT(*) FROM telecom_operators WHERE active = true) as operators_count,
+    (SELECT COUNT(*) FROM data_plans WHERE active = true) as plans_count,
+    (SELECT COUNT(*) FROM transactions 
+     WHERE created_at >= date_trunc('month', CURRENT_DATE)) as transactions_this_month,
+    (SELECT COUNT(*) FROM profiles 
+     WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') as new_users_this_week;
+$function$
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -- ============================================
+-- FUNCTION: update_modified_column
+-- ============================================
+CREATE OR REPLACE FUNCTION public.update_modified_column()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$function$
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -- TRIGGER: update_automatic_savings_modified_column ON automatic_savings
+CREATE TRIGGER update_automatic_savings_modified_column BEFORE UPDATE ON automatic_savings FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -- TRIGGER: trg_data_plans_updated_at ON data_plans
+CREATE TRIGGER trg_data_plans_updated_at BEFORE UPDATE ON data_plans FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -- TRIGGER: trg_calculate_preregistration_priority ON preregistrations
+CREATE TRIGGER trg_calculate_preregistration_priority BEFORE UPDATE ON preregistrations FOR EACH ROW EXECUTE FUNCTION calculate_preregistration_priority();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -- TRIGGER: trg_calculate_preregistration_priority ON preregistrations
+CREATE TRIGGER trg_calculate_preregistration_priority BEFORE INSERT ON preregistrations FOR EACH ROW EXECUTE FUNCTION calculate_preregistration_priority();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -- TRIGGER: trg_preregistrations_updated_at ON preregistrations
+CREATE TRIGGER trg_preregistrations_updated_at BEFORE UPDATE ON preregistrations FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- TRIGGER: trg_profiles_updated_at ON profiles
+CREATE TRIGGER trg_profiles_updated_at BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- TRIGGER: trg_saving_parameters_updated_at ON saving_parameters
+CREATE TRIGGER trg_saving_parameters_updated_at BEFORE UPDATE ON saving_parameters FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -- TRIGGER: trg_saving_types_updated_at ON saving_types
+CREATE TRIGGER trg_saving_types_updated_at BEFORE UPDATE ON saving_types FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- TRIGGER: trg_subscriptions_audit ON subscriptions
+CREATE TRIGGER trg_subscriptions_audit AFTER UPDATE ON subscriptions FOR EACH ROW EXECUTE FUNCTION log_subscription_change();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -- TRIGGER: trg_subscriptions_audit ON subscriptions
+CREATE TRIGGER trg_subscriptions_audit AFTER INSERT ON subscriptions FOR EACH ROW EXECUTE FUNCTION log_subscription_change();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -- TRIGGER: trg_subscriptions_audit ON subscriptions
+CREATE TRIGGER trg_subscriptions_audit AFTER DELETE ON subscriptions FOR EACH ROW EXECUTE FUNCTION log_subscription_change();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -- TRIGGER: trg_subscriptions_updated_at ON subscriptions
+CREATE TRIGGER trg_subscriptions_updated_at BEFORE UPDATE ON subscriptions FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -- TRIGGER: trg_operators_updated_at ON telecom_operators
+CREATE TRIGGER trg_operators_updated_at BEFORE UPDATE ON telecom_operators FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -- TRIGGER: trg_apply_savings ON transactions
+CREATE TRIGGER trg_apply_savings AFTER INSERT ON transactions FOR EACH ROW EXECUTE FUNCTION apply_transaction_savings();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- TRIGGER: trg_transactions_updated_at ON transactions
+CREATE TRIGGER trg_transactions_updated_at BEFORE UPDATE ON transactions FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- TRIGGER: trg_user_savings_updated_at ON user_savings
+CREATE TRIGGER trg_user_savings_updated_at BEFORE UPDATE ON user_savings FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -- ============================================
+-- VIEW: public.dashboard_stats
+-- ============================================
+CREATE OR REPLACE VIEW public.dashboard_stats AS 
+ SELECT ( SELECT count(*) AS count
+           FROM profiles) AS users_count,
+    ( SELECT COALESCE(sum(user_savings.balance), (0)::numeric) AS "coalesce"
+           FROM user_savings) AS total_savings,
+    ( SELECT count(*) AS count
+           FROM transactions) AS transactions_count,
+    ( SELECT COALESCE(avg(transactions.net_saving), (0)::numeric) AS "coalesce"
+           FROM transactions) AS average_saving,
+    ( SELECT count(*) AS count
+           FROM telecom_operators
+          WHERE (telecom_operators.active = true)) AS operators_count,
+    ( SELECT count(*) AS count
+           FROM data_plans
+          WHERE (data_plans.active = true)) AS plans_count,
+    ( SELECT count(*) AS count
+           FROM transactions
+          WHERE (transactions.created_at >= date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))) AS transactions_this_month,
+    ( SELECT count(*) AS count
+           FROM profiles
+          WHERE (profiles.created_at >= (CURRENT_DATE - '7 days'::interval))) AS new_users_this_week;;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -- ============================================
+-- VIEW: public.popular_data_plans
+-- ============================================
+CREATE OR REPLACE VIEW public.popular_data_plans AS 
+ SELECT dp.id,
+    dp.operator_id,
+    dp.name,
+    dp.volume_mb,
+    dp.price,
+    dp.validity_days,
+    dp.is_popular,
+    dp.active,
+    dp.description,
+    dp.created_at,
+    dp.updated_at,
+    op.name AS operator_name,
+    count(s.id) AS subscription_count
+   FROM ((data_plans dp
+     JOIN telecom_operators op ON ((dp.operator_id = op.id)))
+     LEFT JOIN subscriptions s ON (((dp.id = s.plan_id) AND (s.status = 'active'::text))))
+  WHERE (dp.active = true)
+  GROUP BY dp.id, op.name
+  ORDER BY (count(s.id)) DESC, dp.price;;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -- ============================================
+-- VIEW: public.preregistration_stats
+-- ============================================
+CREATE OR REPLACE VIEW public.preregistration_stats AS 
+ SELECT count(*) AS total_preregistrations,
+    count(*) FILTER (WHERE (status = 'pending'::text)) AS pending_count,
+    count(*) FILTER (WHERE (marketing_consent = true)) AS marketing_consent_count,
+    count(*) FILTER (WHERE (phone IS NOT NULL)) AS with_phone_count,
+    avg(priority_score) AS average_priority_score,
+    count(*) FILTER (WHERE (referral_source = 'friend'::text)) AS friend_referrals,
+    count(*) FILTER (WHERE (referral_source = 'social_media'::text)) AS social_media_referrals,
+    count(*) FILTER (WHERE (created_at >= (CURRENT_DATE - '7 days'::interval))) AS last_week_registrations,
+    count(*) FILTER (WHERE (created_at >= (CURRENT_DATE - '30 days'::interval))) AS last_month_registrations
+   FROM preregistrations;;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -- ============================================
+-- VIEW: public.saving_statistics
+-- ============================================
+CREATE OR REPLACE VIEW public.saving_statistics AS 
+ SELECT st.name AS saving_type,
+    count(us.id) AS total_users,
+    sum(us.balance) AS total_balance,
+    avg(us.balance) AS average_balance,
+    min(us.balance) AS min_balance,
+    max(us.balance) AS max_balance
+   FROM (user_savings us
+     JOIN saving_types st ON ((us.saving_type_id = st.id)))
+  GROUP BY st.name;;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -- ============================================
+-- VIEW: public.transactions_with_users
+-- ============================================
+CREATE OR REPLACE VIEW public.transactions_with_users AS 
+ SELECT t.id,
+    t.user_id,
+    t.transaction_type,
+    t.amount_paid,
+    t.net_saving,
+    t.created_at,
+    p.email,
+    p.phone,
+    p.full_name
+   FROM (transactions t
+     LEFT JOIN profiles p ON ((t.user_id = p.id)))
+  ORDER BY t.created_at DESC;;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -- ============================================
+-- VIEW: public.user_profiles_with_roles
+-- ============================================
+CREATE OR REPLACE VIEW public.user_profiles_with_roles AS 
+ SELECT p.id,
+    p.email,
+    p.full_name,
+    p.phone,
+    p.created_at,
+    COALESCE(array_agg(r.name) FILTER (WHERE (r.name IS NOT NULL)), '{}'::text[]) AS roles
+   FROM ((profiles p
+     LEFT JOIN user_roles ur ON ((p.id = ur.user_id)))
+     LEFT JOIN roles r ON ((ur.role_id = r.id)))
+  GROUP BY p.id, p.email, p.full_name, p.phone, p.created_at;;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -- ============================================
+-- RLS POLICY: Users can create their own automatic savings ON automatic_savings
+-- ============================================
+DROP POLICY IF EXISTS "Users can create their own automatic savings" ON public.automatic_savings;
+CREATE POLICY "Users can create their own automatic savings" ON public.automatic_savings
+FOR INSERT
+TO public
+WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- ============================================
+-- RLS POLICY: Users can update their own automatic savings ON automatic_savings
+-- ============================================
+DROP POLICY IF EXISTS "Users can update their own automatic savings" ON public.automatic_savings;
+CREATE POLICY "Users can update their own automatic savings" ON public.automatic_savings
+FOR UPDATE
+TO public
+USING ((( SELECT auth.uid() AS uid) = user_id))
+WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- ============================================
+-- RLS POLICY: Users can view their own automatic savings ON automatic_savings
+-- ============================================
+DROP POLICY IF EXISTS "Users can view their own automatic savings" ON public.automatic_savings;
+CREATE POLICY "Users can view their own automatic savings" ON public.automatic_savings
+FOR SELECT
+TO public
+USING ((( SELECT auth.uid() AS uid) = user_id))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| -- ============================================
+-- RLS POLICY: data_plans_select_merged ON data_plans
+-- ============================================
+DROP POLICY IF EXISTS data_plans_select_merged ON public.data_plans;
+CREATE POLICY data_plans_select_merged ON public.data_plans
+FOR SELECT
+TO public
+USING ((is_user_admin(( SELECT auth.uid() AS uid)) OR true))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -- ============================================
+-- RLS POLICY: preregistrations_insert_merged ON preregistrations
+-- ============================================
+DROP POLICY IF EXISTS preregistrations_insert_merged ON public.preregistrations;
+CREATE POLICY preregistrations_insert_merged ON public.preregistrations
+FOR INSERT
+TO public
+WITH CHECK ((((email IS NOT NULL) AND (length(TRIM(BOTH FROM email)) > 0) AND (full_name IS NOT NULL) AND (length(TRIM(BOTH FROM full_name)) > 0) AND (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'::text)) OR is_user_admin(( SELECT auth.uid() AS uid))));
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| -- ============================================
+-- RLS POLICY: preregistrations_select_merged ON preregistrations
+-- ============================================
+DROP POLICY IF EXISTS preregistrations_select_merged ON public.preregistrations;
+CREATE POLICY preregistrations_select_merged ON public.preregistrations
+FOR SELECT
+TO public
+USING ((is_user_admin(( SELECT auth.uid() AS uid)) OR has_role(( SELECT auth.uid() AS uid), 'support'::text)))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -- ============================================
+-- RLS POLICY: profiles_insert_merged ON profiles
+-- ============================================
+DROP POLICY IF EXISTS profiles_insert_merged ON public.profiles;
+CREATE POLICY profiles_insert_merged ON public.profiles
+FOR INSERT
+TO public
+WITH CHECK (((id = ( SELECT auth.uid() AS uid)) OR is_user_admin(( SELECT auth.uid() AS uid))));
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -- ============================================
+-- RLS POLICY: profiles_select_merged ON profiles
+-- ============================================
+DROP POLICY IF EXISTS profiles_select_merged ON public.profiles;
+CREATE POLICY profiles_select_merged ON public.profiles
+FOR SELECT
+TO public
+USING (((id = ( SELECT auth.uid() AS uid)) OR has_role(( SELECT auth.uid() AS uid), 'support'::text) OR is_user_admin(( SELECT auth.uid() AS uid))))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- ============================================
+-- RLS POLICY: profiles_update_merged ON profiles
+-- ============================================
+DROP POLICY IF EXISTS profiles_update_merged ON public.profiles;
+CREATE POLICY profiles_update_merged ON public.profiles
+FOR UPDATE
+TO public
+USING (((id = ( SELECT auth.uid() AS uid)) OR is_user_admin(( SELECT auth.uid() AS uid))))
+WITH CHECK (((id = ( SELECT auth.uid() AS uid)) OR is_user_admin(( SELECT auth.uid() AS uid))));
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| -- ============================================
+-- RLS POLICY: roles_select_merged ON roles
+-- ============================================
+DROP POLICY IF EXISTS roles_select_merged ON public.roles;
+CREATE POLICY roles_select_merged ON public.roles
+FOR SELECT
+TO public
+USING ((is_user_admin(( SELECT auth.uid() AS uid)) OR (( SELECT auth.uid() AS uid) IS NOT NULL)))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| -- ============================================
+-- RLS POLICY: saving_parameters_select_merged ON saving_parameters
+-- ============================================
+DROP POLICY IF EXISTS saving_parameters_select_merged ON public.saving_parameters;
+CREATE POLICY saving_parameters_select_merged ON public.saving_parameters
+FOR SELECT
+TO public
+USING ((is_user_admin(( SELECT auth.uid() AS uid)) OR true))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| -- ============================================
+-- RLS POLICY: saving_types_select_merged ON saving_types
+-- ============================================
+DROP POLICY IF EXISTS saving_types_select_merged ON public.saving_types;
+CREATE POLICY saving_types_select_merged ON public.saving_types
+FOR SELECT
+TO public
+USING ((is_user_admin(( SELECT auth.uid() AS uid)) OR true))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- ============================================
+-- RLS POLICY: subscriptions_insert_merged ON subscriptions
+-- ============================================
+DROP POLICY IF EXISTS subscriptions_insert_merged ON public.subscriptions;
+CREATE POLICY subscriptions_insert_merged ON public.subscriptions
+FOR INSERT
+TO public
+WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR is_user_admin(( SELECT auth.uid() AS uid))));
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -- ============================================
+-- RLS POLICY: subscriptions_select_merged ON subscriptions
+-- ============================================
+DROP POLICY IF EXISTS subscriptions_select_merged ON public.subscriptions;
+CREATE POLICY subscriptions_select_merged ON public.subscriptions
+FOR SELECT
+TO public
+USING (((user_id = ( SELECT auth.uid() AS uid)) OR has_role(( SELECT auth.uid() AS uid), 'support'::text) OR is_user_admin(( SELECT auth.uid() AS uid))))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -- ============================================
+-- RLS POLICY: subscriptions_history_admin_delete ON subscriptions_history
+-- ============================================
+DROP POLICY IF EXISTS subscriptions_history_admin_delete ON public.subscriptions_history;
+CREATE POLICY subscriptions_history_admin_delete ON public.subscriptions_history
+FOR DELETE
+TO public
+USING (is_user_admin(( SELECT auth.uid() AS uid)))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -- ============================================
+-- RLS POLICY: subscriptions_history_admin_insert ON subscriptions_history
+-- ============================================
+DROP POLICY IF EXISTS subscriptions_history_admin_insert ON public.subscriptions_history;
+CREATE POLICY subscriptions_history_admin_insert ON public.subscriptions_history
+FOR INSERT
+TO public
+WITH CHECK (is_user_admin(( SELECT auth.uid() AS uid)));
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -- ============================================
+-- RLS POLICY: subscriptions_history_admin_update ON subscriptions_history
+-- ============================================
+DROP POLICY IF EXISTS subscriptions_history_admin_update ON public.subscriptions_history;
+CREATE POLICY subscriptions_history_admin_update ON public.subscriptions_history
+FOR UPDATE
+TO public
+USING (is_user_admin(( SELECT auth.uid() AS uid)))
+WITH CHECK (is_user_admin(( SELECT auth.uid() AS uid)));
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -- ============================================
+-- RLS POLICY: subscriptions_history_select_merged ON subscriptions_history
+-- ============================================
+DROP POLICY IF EXISTS subscriptions_history_select_merged ON public.subscriptions_history;
+CREATE POLICY subscriptions_history_select_merged ON public.subscriptions_history
+FOR SELECT
+TO public
+USING (((user_id = ( SELECT auth.uid() AS uid)) OR has_role(( SELECT auth.uid() AS uid), 'support'::text) OR is_user_admin(( SELECT auth.uid() AS uid))))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -- ============================================
+-- RLS POLICY: telecom_operators_select_merged ON telecom_operators
+-- ============================================
+DROP POLICY IF EXISTS telecom_operators_select_merged ON public.telecom_operators;
+CREATE POLICY telecom_operators_select_merged ON public.telecom_operators
+FOR SELECT
+TO public
+USING ((is_user_admin(( SELECT auth.uid() AS uid)) OR true))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| -- ============================================
+-- RLS POLICY: transactions_insert_merged ON transactions
+-- ============================================
+DROP POLICY IF EXISTS transactions_insert_merged ON public.transactions;
+CREATE POLICY transactions_insert_merged ON public.transactions
+FOR INSERT
+TO public
+WITH CHECK (((user_id = ( SELECT auth.uid() AS uid)) OR is_user_admin(( SELECT auth.uid() AS uid))));
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -- ============================================
+-- RLS POLICY: transactions_select_merged ON transactions
+-- ============================================
+DROP POLICY IF EXISTS transactions_select_merged ON public.transactions;
+CREATE POLICY transactions_select_merged ON public.transactions
+FOR SELECT
+TO public
+USING (((user_id = ( SELECT auth.uid() AS uid)) OR has_role(( SELECT auth.uid() AS uid), 'support'::text) OR is_user_admin(( SELECT auth.uid() AS uid))))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -- ============================================
+-- RLS POLICY: user_roles_select_merged ON user_roles
+-- ============================================
+DROP POLICY IF EXISTS user_roles_select_merged ON public.user_roles;
+CREATE POLICY user_roles_select_merged ON public.user_roles
+FOR SELECT
+TO public
+USING (((user_id = ( SELECT auth.uid() AS uid)) OR is_user_admin(( SELECT auth.uid() AS uid))))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -- ============================================
+-- RLS POLICY: user_savings_delete_merged ON user_savings
+-- ============================================
+DROP POLICY IF EXISTS user_savings_delete_merged ON public.user_savings;
+CREATE POLICY user_savings_delete_merged ON public.user_savings
+FOR DELETE
+TO public
+USING (((( SELECT auth.uid() AS uid) = user_id) OR is_user_admin(( SELECT auth.uid() AS uid))))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -- ============================================
+-- RLS POLICY: user_savings_insert_merged ON user_savings
+-- ============================================
+DROP POLICY IF EXISTS user_savings_insert_merged ON public.user_savings;
+CREATE POLICY user_savings_insert_merged ON public.user_savings
+FOR INSERT
+TO public
+WITH CHECK (((( SELECT auth.uid() AS uid) = user_id) OR is_user_admin(( SELECT auth.uid() AS uid))));
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -- ============================================
+-- RLS POLICY: user_savings_select_merged ON user_savings
+-- ============================================
+DROP POLICY IF EXISTS user_savings_select_merged ON public.user_savings;
+CREATE POLICY user_savings_select_merged ON public.user_savings
+FOR SELECT
+TO public
+USING (((( SELECT auth.uid() AS uid) = user_id) OR has_role(( SELECT auth.uid() AS uid), 'support'::text) OR is_user_admin(( SELECT auth.uid() AS uid))))
+;
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -- ============================================
+-- RLS POLICY: user_savings_update_merged ON user_savings
+-- ============================================
+DROP POLICY IF EXISTS user_savings_update_merged ON public.user_savings;
+CREATE POLICY user_savings_update_merged ON public.user_savings
+FOR UPDATE
+TO public
+USING (((( SELECT auth.uid() AS uid) = user_id) OR is_user_admin(( SELECT auth.uid() AS uid))))
+WITH CHECK (((( SELECT auth.uid() AS uid) = user_id) OR is_user_admin(( SELECT auth.uid() AS uid))));
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |

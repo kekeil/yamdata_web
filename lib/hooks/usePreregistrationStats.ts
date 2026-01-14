@@ -23,27 +23,39 @@ export function usePreregistrationStats() {
       setLoading(true);
       setError(null);
 
-      // Essayer d'abord de récupérer via la vue
-      const { data: viewData, error: viewError } = await supabase
-        .from('preregistration_stats')
-        .select('*')
-        .single();
+      // Utiliser la fonction RPC pour récupérer les statistiques
+      type PreregistrationStatsRPC = {
+        total_preregistrations: number | null;
+        pending_count: number | null;
+        marketing_consent_count: number | null;
+        with_phone_count: number | null;
+        average_priority_score: number | null;
+        friend_referrals: number | null;
+        social_media_referrals: number | null;
+        last_week_registrations: number | null;
+        last_month_registrations: number | null;
+      };
 
-      if (!viewError && viewData) {
-        setStats(viewData);
-        return;
+      const { data, error } = await supabase
+        .rpc('get_preregistration_stats')
+        .single<PreregistrationStatsRPC>();
+
+      if (error) {
+        throw error;
       }
 
-      // Si la vue n'existe pas ou échoue, calculer manuellement
-      const { data: preregistrations, error: dataError } = await supabase
-        .from('preregistrations')
-        .select('*');
-
-      if (dataError) {
-        throw dataError;
-      }
-
-      if (!preregistrations) {
+      if (data) {
+        setStats({
+          total_preregistrations: Number(data.total_preregistrations) || 0,
+          pending_count: Number(data.pending_count) || 0,
+          marketing_consent_count: Number(data.marketing_consent_count) || 0,
+          with_phone_count: Number(data.with_phone_count) || 0,
+          average_priority_score: Number(data.average_priority_score) || 0,
+          last_week_registrations: Number(data.last_week_registrations) || 0,
+          last_month_registrations: Number(data.last_month_registrations) || 0,
+        });
+      } else {
+        // Statistiques par défaut si aucune donnée
         setStats({
           total_preregistrations: 0,
           pending_count: 0,
@@ -53,32 +65,7 @@ export function usePreregistrationStats() {
           last_week_registrations: 0,
           last_month_registrations: 0,
         });
-        return;
       }
-
-      // Calcul manuel des statistiques
-      const now = new Date();
-      const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const lastMonth = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-      const manualStats: PreregistrationStats = {
-        total_preregistrations: preregistrations.length,
-        pending_count: preregistrations.filter(p => p.status === 'pending').length,
-        marketing_consent_count: preregistrations.filter(p => p.marketing_consent).length,
-        with_phone_count: preregistrations.filter(p => p.phone && p.phone.trim() !== '').length,
-        average_priority_score: preregistrations.length > 0 
-          ? preregistrations.reduce((sum, p) => sum + (p.priority_score || 0), 0) / preregistrations.length 
-          : 0,
-        last_week_registrations: preregistrations.filter(p => 
-          new Date(p.created_at) >= lastWeek
-        ).length,
-        last_month_registrations: preregistrations.filter(p => 
-          new Date(p.created_at) >= lastMonth
-        ).length,
-      };
-
-      setStats(manualStats);
-
     } catch (err: any) {
       console.error('Erreur lors de la récupération des statistiques:', err);
       setError(err.message);

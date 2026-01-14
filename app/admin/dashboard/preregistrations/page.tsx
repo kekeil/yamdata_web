@@ -103,17 +103,40 @@ export default function PreregistrationsPage() {
 
   async function fetchStats() {
     try {
-      const { data, error } = await supabase
-        .from('preregistration_stats')
-        .select('*')
-        .single();
+      type PreregistrationStatsRPC = {
+        total_preregistrations: number | null;
+        pending_count: number | null;
+        marketing_consent_count: number | null;
+        with_phone_count: number | null;
+        average_priority_score: number | null;
+        friend_referrals: number | null;
+        social_media_referrals: number | null;
+        last_week_registrations: number | null;
+        last_month_registrations: number | null;
+      };
 
-      if (error && error.code !== 'PGRST116') { // Ignore "no rows returned" error
+      const { data, error } = await supabase
+        .rpc('get_preregistration_stats')
+        .single<PreregistrationStatsRPC>();
+
+      if (error) {
         console.error('Erreur lors de la récupération des statistiques:', error);
         return;
       }
       
-      setStats(data);
+      if (data) {
+        setStats({
+          total_preregistrations: Number(data.total_preregistrations) || 0,
+          pending_count: Number(data.pending_count) || 0,
+          marketing_consent_count: Number(data.marketing_consent_count) || 0,
+          with_phone_count: Number(data.with_phone_count) || 0,
+          average_priority_score: Number(data.average_priority_score) || 0,
+          friend_referrals: Number(data.friend_referrals) || 0,
+          social_media_referrals: Number(data.social_media_referrals) || 0,
+          last_week_registrations: Number(data.last_week_registrations) || 0,
+          last_month_registrations: Number(data.last_month_registrations) || 0,
+        });
+      }
     } catch (error) {
       console.error('Erreur:', error);
     }
@@ -121,16 +144,21 @@ export default function PreregistrationsPage() {
 
   async function updatePreregistrationStatus(id: number, status: string, notes?: string) {
     try {
-      const { error } = await supabase
-        .from('preregistrations')
-        .update({ 
-          status, 
-          notes: notes || null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
+      const { data, error } = await supabase
+        .rpc('update_preregistration', {
+          preregistration_id: id,
+          new_status: status,
+          new_notes: notes || null
+        });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+
+      // Vérifier que la fonction a retourné true (succès)
+      if (data === false) {
+        throw new Error('La mise à jour a échoué. Vérifiez que vous êtes administrateur et que la préinscription existe.');
+      }
 
       // Refresh data
       await fetchPreregistrations();
@@ -139,9 +167,9 @@ export default function PreregistrationsPage() {
       // Close modal
       setShowDetailsModal(false);
       setSelectedPreregistration(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la mise à jour:', error);
-      alert('Erreur lors de la mise à jour du statut');
+      alert(error.message || 'Erreur lors de la mise à jour du statut');
     }
   }
 
@@ -151,18 +179,25 @@ export default function PreregistrationsPage() {
     }
 
     try {
-      const { error } = await supabase
-        .from('preregistrations')
-        .delete()
-        .eq('id', id);
+      const { data, error } = await supabase
+        .rpc('delete_preregistration', {
+          preregistration_id: id
+        });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+
+      // Vérifier que la fonction a retourné true (succès)
+      if (data === false) {
+        throw new Error('La suppression a échoué. Vérifiez que vous êtes administrateur et que la préinscription existe.');
+      }
 
       await fetchPreregistrations();
       await fetchStats();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de la suppression:', error);
-      alert('Erreur lors de la suppression');
+      alert(error.message || 'Erreur lors de la suppression');
     }
   }
 
