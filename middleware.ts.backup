@@ -1,0 +1,40 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+
+export async function middleware(request: NextRequest) {
+  const response = NextResponse.next();
+  
+  // Mise en cache optimisée pour les assets statiques et API
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    // Cache les réponses API pour 1 minute
+    response.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+  }
+  
+  // Préchargement des ressources critiques pour le dashboard
+  if (request.nextUrl.pathname.startsWith('/admin/dashboard')) {
+// middleware.ts
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+  
+  // Routes publiques (accessibles sans connexion)
+  const publicRoutes = ['/', '/login', '/signup', '/forgot-password', '/reset-password'];
+  const isPublicRoute = publicRoutes.some(route => req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith('/api'));
+
+  // Laisser passer les routes publiques
+  if (isPublicRoute) {
+    return res;
+  }
+
+  // Pour les routes protégées, on laisse le layout gérer la redirection
+  // car le middleware en mode edge a des problèmes avec Supabase
+  return res;
+}
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+};

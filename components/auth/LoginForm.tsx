@@ -14,21 +14,26 @@ export default function LoginForm() {
   const router = useRouter();
   const { login, error, user, isAdmin, isLoading } = useAuthStore();
   const [loginInProgress, setLoginInProgress] = useState(false);
-  
-  const { 
-    register, 
-    handleSubmit, 
-    formState: { errors } 
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
   } = useForm<LoginFormData>();
-  
-  // Redirection si l'utilisateur est connecté et admin
+
+  // Redirection selon le rôle
   useEffect(() => {
-    if (user && isAdmin && !isLoading) {
-      // Utiliser replace au lieu de push pour éviter l'historique de navigation
-      router.replace('/admin/dashboard/overview');
+    if (user && !isLoading) {
+      if (isAdmin) {
+        // Admin → Dashboard Admin
+        router.replace('/admin/dashboard/overview');
+      } else {
+        // Utilisateur normal → Dashboard Utilisateur
+        router.replace('/dashboard');
+      }
     }
   }, [user, isAdmin, isLoading, router]);
-  
+
   const onSubmit = async (data: LoginFormData) => {
     try {
       setLoginInProgress(true);
@@ -40,7 +45,7 @@ export default function LoginForm() {
       setLoginInProgress(false);
     }
   };
-  
+
   // Afficher un message de chargement pendant la connexion
   if (loginInProgress || isLoading) {
     return (
@@ -50,31 +55,7 @@ export default function LoginForm() {
       </div>
     );
   }
-  
-  // Afficher un message d'erreur si l'utilisateur n'est pas admin
-  if (user && !isAdmin && !isLoading) {
-    return (
-      <div className="rounded-md bg-yellow-50 p-4 my-4">
-        <div className="flex">
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-yellow-800">Accès refusé</h3>
-            <div className="mt-2 text-sm text-yellow-700">
-              <p>Vous êtes connecté, mais vous n'avez pas les droits d'administrateur nécessaires pour accéder au tableau de bord.</p>
-            </div>
-            <div className="mt-4">
-              <button
-                onClick={() => useAuthStore.getState().logout()}
-                className="rounded-md bg-yellow-50 px-2 py-1.5 text-sm font-medium text-yellow-800 hover:bg-yellow-100"
-              >
-                Se déconnecter
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
@@ -86,8 +67,8 @@ export default function LoginForm() {
             id="email"
             type="email"
             autoComplete="email"
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-            {...register('email', { 
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-3 py-2"
+            {...register('email', {
               required: 'Email est requis',
               pattern: {
                 value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
@@ -100,7 +81,7 @@ export default function LoginForm() {
           )}
         </div>
       </div>
-      
+
       <div>
         <label htmlFor="password" className="block text-sm font-medium text-gray-700">
           Mot de passe
@@ -110,7 +91,7 @@ export default function LoginForm() {
             id="password"
             type="password"
             autoComplete="current-password"
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 px-3 py-2"
             {...register('password', { required: 'Mot de passe est requis' })}
           />
           {errors.password && (
@@ -118,7 +99,7 @@ export default function LoginForm() {
           )}
         </div>
       </div>
-      
+
       {error && (
         <div className="rounded-md bg-red-50 p-4">
           <div className="flex">
@@ -131,7 +112,7 @@ export default function LoginForm() {
           </div>
         </div>
       )}
-      
+
       <div>
         <button
           type="submit"
@@ -141,6 +122,15 @@ export default function LoginForm() {
           {loginInProgress || isLoading ? 'Connexion en cours...' : 'Se connecter'}
         </button>
       </div>
+
+      <div className="text-center">
+        <p className="text-sm text-gray-600">
+          Pas encore de compte ?{' '}
+          <a href="/signup" className="font-medium text-green-600 hover:text-green-500">
+            S'inscrire
+          </a>
+        </p>
+      </div>
     </form>
   );
-} 
+}
