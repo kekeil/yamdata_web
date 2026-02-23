@@ -1,51 +1,65 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
-  // Routes publiques (accessibles sans authentification)
-  const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
-  
-  // Routes protégées qui nécessitent une authentification
+  const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/signup'];
   const protectedRoutes = ['/forfaits', '/epargne', '/transactions', '/profil', '/dashboard'];
-  
-  // Routes admin
   const adminRoutes = ['/admin'];
 
-  // Vérifier si c'est une route protégée
   const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
   const isAdminRoute = adminRoutes.some(route => path.startsWith(route));
-  const isPublicRoute = publicRoutes.includes(path);
+  const isLoginOrRegister = path === '/login' || path === '/register' || path === '/signup';
 
-  // Récupérer les cookies d'authentification Supabase
-  const supabaseAuthToken = req.cookies.get('sb-access-token')?.value || 
-                           req.cookies.get('supabase-auth-token')?.value;
+  // Créer une réponse modifiable pour Supabase SSR
+  let response = NextResponse.next({
+    request: { headers: req.headers },
+  });
 
-  // Si c'est une route protégée et pas de token
-  if ((isProtectedRoute || isAdminRoute) && !supabaseAuthToken) {
+  // Créer le client Supabase SSR (il lit/écrit les cookies correctement)
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            req.cookies.set(name, value);
+          });
+          response = NextResponse.next({ request: { headers: req.headers } });
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
+  // Récupérer la session (méthode correcte pour SSR)
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Route protégée sans session → login
+  if ((isProtectedRoute || isAdminRoute) && !user) {
     const redirectUrl = new URL('/login', req.url);
     redirectUrl.searchParams.set('redirect', path);
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Si authentifié et sur /login ou /register, rediriger vers dashboard
-  if (isPublicRoute && (path === '/login' || path === '/register') && supabaseAuthToken) {
+  // Déjà connecté sur login/register → dashboard
+  if (isLoginOrRegister && user) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (images, etc.)
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
