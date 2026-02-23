@@ -19,10 +19,31 @@ export const signInWithEmail = async (email: string, password: string) => {
   return { data, error };
 };
 
-// Fonction pour se déconnecter
+// Fonction pour se déconnecter - CORRIGÉE
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  return { error };
+  try {
+    // 1. Déconnexion de Supabase
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.error('Erreur Supabase signOut:', error);
+      throw error;
+    }
+    
+    // 2. Nettoyer le localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.clear();
+      sessionStorage.clear();
+    }
+    
+    // 3. Supprimer tous les canaux Supabase
+    await supabase.removeAllChannels();
+    
+    return { error: null };
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion:', error);
+    return { error };
+  }
 };
 
 // Middleware pour vérifier si l'utilisateur est connecté (côté client)
@@ -51,4 +72,4 @@ export const requireAdmin = async () => {
   }
   
   return { user };
-}; 
+};

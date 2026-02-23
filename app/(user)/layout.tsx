@@ -1,29 +1,33 @@
 'use client';
-import { useEffect } from 'react';
+
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/authStore';
 import UserNavbar from '@/components/user-dashboard/UserNavbar';
 
-export default function DashboardLayout({
+export default function UserLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { user, isLoading, isAdmin } = useAuthStore();
+  const { user, isLoading } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
 
+  // Éviter les problèmes d'hydration
   useEffect(() => {
-    // Rediriger si pas connecté
-    if (!isLoading && !user) {
+    setMounted(true);
+  }, []);
+
+  // Redirection si non authentifié
+  useEffect(() => {
+    if (mounted && !isLoading && !user) {
       router.push('/login');
     }
-    // Rediriger les admins vers le dashboard admin
-    if (!isLoading && user && isAdmin) {
-      router.push('/admin/dashboard');
-    }
-  }, [user, isLoading, isAdmin, router]);
+  }, [mounted, user, isLoading, router]);
 
-  if (isLoading) {
+  // Pendant le chargement initial ou si pas encore monté
+  if (!mounted || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -34,10 +38,12 @@ export default function DashboardLayout({
     );
   }
 
+  // Si pas d'utilisateur, ne rien afficher (redirection en cours)
   if (!user) {
     return null;
   }
 
+  // Rendu normal
   return (
     <div className="min-h-screen bg-gray-50">
       <UserNavbar />

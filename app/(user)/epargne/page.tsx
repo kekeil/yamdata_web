@@ -1,9 +1,10 @@
-// app/epargne/page.tsx
 'use client';
+
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/lib/store/authStore';
 import { supabase } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
+import BackButton from '@/components/ui/BackButton';
 
 interface SavingsData {
   balance: number;
@@ -12,20 +13,30 @@ interface SavingsData {
   saving_type_name: string;
 }
 
+interface SavingType {
+  id: number;
+  name: string;
+  description: string;
+}
+
 export default function EpargnePage() {
   const { user } = useAuthStore();
   const [savings, setSavings] = useState<SavingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showCreateCoffreModal, setShowCreateCoffreModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [savingTypes, setSavingTypes] = useState<SavingType[]>([]);
+  const [selectedType, setSelectedType] = useState<number | null>(null);
+  const [hasCoffre, setHasCoffre] = useState(false);
 
   useEffect(() => {
     if (user) {
-      fetchSavings();
+      checkAndFetchSavings();
     }
   }, [user]);
 
-  const fetchSavings = async () => {
+  const checkAndFetchSavings = async () => {
     try {
       const { data, error } = await supabase
         .from('user_savings')
@@ -36,17 +47,20 @@ export default function EpargnePage() {
           saving_types!inner(name)
         `)
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        // Si pas d'épargne, créer un objet vide
-        setSavings({
-          balance: 0,
-          total_saved: 0,
-          total_withdrawn: 0,
-          saving_type_name: 'Libre'
-        });
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erreur:', error);
+      }
+
+      if (!data) {
+        // Pas de coffre, afficher la modal de création
+        setHasCoffre(false);
+        setShowCreateCoffreModal(true);
+        // Charger les types d'épargne
+        await fetchSavingTypes();
       } else {
+        setHasCoffre(true);
         setSavings({
           balance: data.balance,
           total_saved: data.total_saved,
@@ -61,9 +75,55 @@ export default function EpargnePage() {
     }
   };
 
+  const fetchSavingTypes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('saving_types')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setSavingTypes(data || []);
+      if (data && data.length > 0) {
+        setSelectedType(data[0].id);
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+    }
+  };
+
+  const handleCreateCoffre = async () => {
+    if (!selectedType) {
+      alert('Veuillez sélectionner un type d\'épargne');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_savings')
+        .insert({
+          user_id: user?.id,
+          saving_type_id: selectedType,
+          balance: 0,
+          total_saved: 0,
+          total_withdrawn: 0
+        });
+
+      if (error) throw error;
+
+      setShowCreateCoffreModal(false);
+      setHasCoffre(true);
+      // Recharger les données
+      await checkAndFetchSavings();
+    } catch (error) {
+      console.error('Erreur:', error);
+      alert('Erreur lors de la création du coffre');
+    }
+  };
+
   const handleWithdraw = async () => {
     const amount = parseFloat(withdrawAmount);
-    
+
     if (!amount || amount <= 0) {
       alert('Montant invalide');
       return;
@@ -74,7 +134,6 @@ export default function EpargnePage() {
       return;
     }
 
-    // Simulation du retrait
     alert(`Demande de retrait de ${amount} FCFA enregistrée !
 (Fonctionnalité complète à venir)`);
     setShowWithdrawModal(false);
@@ -89,8 +148,63 @@ export default function EpargnePage() {
     );
   }
 
+  // Modal de création de coffre
+  if (!hasCoffre && showCreateCoffreModal) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-2xl shadow-xl p-8"
+        >
+          <div className="text-center mb-8">
+            <span className="text-6xl mb-4 block">🏦</span>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">
+              Créez votre coffre d'épargne
+            </h2>
+            <p className="text-gray-600">
+              Choisissez le type d'épargne qui vous convient
+            </p>
+          </div>
+
+          <div className="space-y-4 mb-8">
+            {savingTypes.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setSelectedType(type.id)}
+                className={`w-full p-6 rounded-xl border-2 text-left transition-all ${
+                  selectedType === type.id
+                    ? 'border-green-600 bg-green-50'
+                    : 'border-gray-200 hover:border-green-300'
+                }`}
+              >
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  {type.name}
+                </h3>
+                <p className="text-sm text-gray-600">{type.description}</p>
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={handleCreateCoffre}
+            disabled={!selectedType}
+            className="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Créer mon coffre
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Bouton retour */}
+      <div className="mb-6">
+        <BackButton href="/dashboard" />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -120,7 +234,7 @@ export default function EpargnePage() {
             <span className="text-4xl">💰</span>
           </div>
         </div>
-        
+
         <div className="flex gap-3 mt-6">
           <button
             onClick={() => setShowWithdrawModal(true)}
@@ -220,7 +334,7 @@ export default function EpargnePage() {
             className="bg-white rounded-2xl p-8 max-w-md w-full"
           >
             <h3 className="text-2xl font-bold mb-4">Demande de retrait</h3>
-            
+
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <p className="text-sm text-gray-600">Solde disponible</p>
               <p className="text-2xl font-bold text-green-600">
