@@ -100,11 +100,9 @@ export default function Home() {
       };
 
       // Insérer dans Supabase
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('preregistrations')
-        .insert([preregistrationPayload])
-        .select()
-        .single();
+        .insert([preregistrationPayload]);
 
       if (error) {
         console.error('Erreur Supabase préinscription:', error);
@@ -202,11 +200,9 @@ export default function Home() {
       };
 
       // Insérer dans Supabase
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('preregistrations')
-        .insert([preregistrationPayload])
-        .select()
-        .single();
+        .insert([preregistrationPayload]);
 
       if (error) {
         console.error('Erreur Supabase préinscription express:', error);
