@@ -10,7 +10,8 @@ import {
   Cog6ToothIcon,
   BuildingOfficeIcon,
   PhoneIcon,
-  UserPlusIcon
+  UserPlusIcon,
+  BellIcon,
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -20,6 +21,7 @@ const navigation = [
   { name: 'Forfaits', href: '/admin/dashboard/plans', icon: PhoneIcon },
   { name: 'Épargne', href: '/admin/dashboard/savings', icon: CurrencyDollarIcon },
   { name: 'Opérateurs', href: '/admin/dashboard/operators', icon: BuildingOfficeIcon },
+  { name: 'Notifications', href: '/admin/dashboard/notifications', icon: BellIcon },
   { name: 'Paramètres', href: '/admin/dashboard/settings', icon: Cog6ToothIcon },
 ];
 
