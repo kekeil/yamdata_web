@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { PencilIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useOptimizedPlans } from '@/lib/hooks/useOptimizedPlans';
 import Modal from '@/components/ui/Modal';
@@ -12,6 +12,9 @@ interface DataPlan {
   price: number;
   validity_days: number;
   code_offer: string | null;
+  plan_type: 'data' | 'sms' | 'airtime';
+  sms_count: number | null;
+  airtime_amount: number | null;
   telecom_operators: {
     id: number;
     name: string;
@@ -22,6 +25,9 @@ interface DataPlan {
 type PlanFormValue = {
   name: string;
   code_offer: string;
+  plan_type: 'data' | 'sms' | 'airtime';
+  sms_count: number;
+  airtime_amount: number;
   volume_mb: number;
   price: number;
   validity_days: number;
@@ -55,6 +61,22 @@ function PlanForm({
 }) {
   return (
     <div className="space-y-4">
+      <div>
+        <label htmlFor="plan-type" className="block text-sm font-medium text-gray-700">
+          Type de forfait
+        </label>
+        <select
+          id="plan-type"
+          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+          value={value.plan_type}
+          onChange={(e) => onChange({ ...value, plan_type: e.target.value as 'data' | 'sms' | 'airtime' })}
+          disabled={disabled}
+        >
+          <option value="data">Forfait Data (Internet)</option>
+          <option value="sms">Forfait SMS</option>
+          <option value="airtime">Crédit téléphonique (Airtime)</option>
+        </select>
+      </div>
       <div>
         <label htmlFor="plan-name" className="block text-sm font-medium text-gray-700">
           Nom
@@ -102,21 +124,57 @@ function PlanForm({
           ))}
         </select>
       </div>
-      <div>
-        <label htmlFor="plan-volume" className="block text-sm font-medium text-gray-700">
-          Volume (Mo)
-        </label>
-        <input
-          type="number"
-          id="plan-volume"
-          min={1}
-          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-          value={value.volume_mb}
-          onChange={(e) => onChange({ ...value, volume_mb: parseInt(e.target.value, 10) || 0 })}
-          required
-          disabled={disabled}
-        />
-      </div>
+      {value.plan_type === 'data' && (
+        <div>
+          <label htmlFor="plan-volume" className="block text-sm font-medium text-gray-700">
+            Volume (Mo)
+          </label>
+          <input
+            type="number"
+            id="plan-volume"
+            min={1}
+            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+            value={value.volume_mb}
+            onChange={(e) => onChange({ ...value, volume_mb: parseInt(e.target.value, 10) || 0 })}
+            required
+            disabled={disabled}
+          />
+        </div>
+      )}
+      {value.plan_type === 'sms' && (
+        <div>
+          <label htmlFor="plan-sms-count" className="block text-sm font-medium text-gray-700">
+            Nombre de SMS
+          </label>
+          <input
+            type="number"
+            id="plan-sms-count"
+            min={1}
+            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+            value={value.sms_count}
+            onChange={(e) => onChange({ ...value, sms_count: parseInt(e.target.value, 10) || 0 })}
+            required
+            disabled={disabled}
+          />
+        </div>
+      )}
+      {value.plan_type === 'airtime' && (
+        <div>
+          <label htmlFor="plan-airtime" className="block text-sm font-medium text-gray-700">
+            Montant crédit (FCFA)
+          </label>
+          <input
+            type="number"
+            id="plan-airtime"
+            min={0}
+            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+            value={value.airtime_amount}
+            onChange={(e) => onChange({ ...value, airtime_amount: parseInt(e.target.value, 10) || 0 })}
+            required
+            disabled={disabled}
+          />
+        </div>
+      )}
       <div>
         <label htmlFor="plan-price" className="block text-sm font-medium text-gray-700">
           Prix (FCFA)
@@ -155,6 +213,9 @@ function defaultPlanForm(operatorId: number): PlanFormValue {
   return {
     name: '',
     code_offer: '',
+    plan_type: 'data',
+    sms_count: 0,
+    airtime_amount: 0,
     volume_mb: 1,
     price: 0,
     validity_days: 30,
@@ -166,6 +227,9 @@ function planToFormValue(plan: DataPlan): PlanFormValue {
   return {
     name: plan.name,
     code_offer: plan.code_offer ?? '',
+    plan_type: plan.plan_type || 'data',
+    sms_count: plan.sms_count ?? 0,
+    airtime_amount: plan.airtime_amount ?? 0,
     volume_mb: plan.volume_mb,
     price: plan.price,
     validity_days: plan.validity_days,
@@ -186,6 +250,17 @@ export default function DataPlansPage() {
     isAdmin,
     authLoading,
   } = useOptimizedPlans();
+
+  const [filterType, setFilterType] = useState<'all' | 'data' | 'sms' | 'airtime'>('all');
+  const [filterOperator, setFilterOperator] = useState<number | 'all'>('all');
+
+  const filteredPlans = useMemo(() => {
+    return plans.filter((p) => {
+      if (filterType !== 'all' && p.plan_type !== filterType) return false;
+      if (filterOperator !== 'all' && p.telecom_operators.id !== filterOperator) return false;
+      return true;
+    });
+  }, [plans, filterType, filterOperator]);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -252,6 +327,9 @@ export default function DataPlansPage() {
         operator_id: newPlan.operator_id,
         active: true,
         code_offer: codeOffer,
+        plan_type: newPlan.plan_type,
+        sms_count: newPlan.plan_type === 'sms' ? newPlan.sms_count : null,
+        airtime_amount: newPlan.plan_type === 'airtime' ? newPlan.airtime_amount : null,
       });
 
       setShowAddModal(false);
@@ -296,6 +374,9 @@ export default function DataPlansPage() {
         validity_days: newPlan.validity_days,
         operator_id: newPlan.operator_id,
         code_offer: codeOffer,
+        plan_type: newPlan.plan_type,
+        sms_count: newPlan.plan_type === 'sms' ? newPlan.sms_count : null,
+        airtime_amount: newPlan.plan_type === 'airtime' ? newPlan.airtime_amount : null,
       });
 
       setShowEditModal(false);
@@ -359,6 +440,43 @@ export default function DataPlansPage() {
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="p-4 border-b border-gray-200">
           <h2 className="text-lg font-medium text-gray-900">Liste des forfaits</h2>
+          <div className="mt-3 flex flex-wrap gap-3 items-center">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-500">Type :</label>
+              <select
+                className="text-sm border border-gray-300 rounded-md py-1.5 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500"
+                value={filterType}
+                onChange={(e) =>
+                  setFilterType(e.target.value as 'all' | 'data' | 'sms' | 'airtime')
+                }
+              >
+                <option value="all">Tous</option>
+                <option value="data">Data</option>
+                <option value="sms">SMS</option>
+                <option value="airtime">Crédit</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-500">Opérateur :</label>
+              <select
+                className="text-sm border border-gray-300 rounded-md py-1.5 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500"
+                value={filterOperator}
+                onChange={(e) =>
+                  setFilterOperator(e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10))
+                }
+              >
+                <option value="all">Tous</option>
+                {operators.map((op) => (
+                  <option key={op.id} value={op.id}>
+                    {op.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <span className="text-xs text-gray-400 ml-auto">
+              {filteredPlans.length} forfait{filteredPlans.length > 1 ? 's' : ''}
+            </span>
+          </div>
         </div>
 
         {loading ? (
@@ -380,6 +498,12 @@ export default function DataPlansPage() {
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
+                  Type
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Code offre
                 </th>
                 <th
@@ -392,7 +516,7 @@ export default function DataPlansPage() {
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  Volume (Go)
+                  Contenu
                 </th>
                 <th
                   scope="col"
@@ -415,17 +539,30 @@ export default function DataPlansPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {plans.length === 0 ? (
+              {filteredPlans.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
                     Aucun forfait trouvé
                   </td>
                 </tr>
               ) : (
-                plans.map((plan) => (
+                filteredPlans.map((plan) => (
                   <tr key={plan.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {plan.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          plan.plan_type === 'data'
+                            ? 'bg-green-100 text-green-800'
+                            : plan.plan_type === 'sms'
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                        }`}
+                      >
+                        {plan.plan_type === 'data' ? 'Data' : plan.plan_type === 'sms' ? 'SMS' : 'Crédit'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-gray-900">
                       {plan.code_offer != null && plan.code_offer !== '' ? (
@@ -449,7 +586,11 @@ export default function DataPlansPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {(plan.volume_mb / 1024).toFixed(2)} Go
+                      {plan.plan_type === 'data'
+                        ? `${((plan.volume_mb || 0) / 1024).toFixed(2)} Go`
+                        : plan.plan_type === 'sms'
+                          ? `${plan.sms_count || 0} SMS`
+                          : `${(plan.airtime_amount || 0).toLocaleString()} FCFA`}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {plan.price.toLocaleString()} FCFA

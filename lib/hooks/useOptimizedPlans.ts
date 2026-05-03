@@ -9,6 +9,9 @@ interface DataPlan {
   price: number;
   validity_days: number;
   code_offer: string | null;
+  plan_type: 'data' | 'sms' | 'airtime';
+  sms_count: number | null;
+  airtime_amount: number | null;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -27,6 +30,9 @@ const UPDATABLE_PLAN_KEYS = [
   'operator_id',
   'code_offer',
   'active',
+  'plan_type',
+  'sms_count',
+  'airtime_amount',
 ] as const;
 
 type UpdatablePlanKey = (typeof UPDATABLE_PLAN_KEYS)[number];
@@ -89,6 +95,9 @@ export function useOptimizedPlans() {
           price,
           validity_days,
           code_offer,
+          plan_type,
+          sms_count,
+          airtime_amount,
           active,
           created_at,
           updated_at,
@@ -159,6 +168,9 @@ export function useOptimizedPlans() {
               ? String(planData.code_offer).trim()
               : null,
           active: true,
+          plan_type: planData.plan_type || 'data',
+          sms_count: planData.sms_count ?? null,
+          airtime_amount: planData.airtime_amount ?? null,
         })
         .select(`
           id,
@@ -167,6 +179,9 @@ export function useOptimizedPlans() {
           price,
           validity_days,
           code_offer,
+          plan_type,
+          sms_count,
+          airtime_amount,
           active,
           created_at,
           updated_at,
@@ -229,6 +244,9 @@ export function useOptimizedPlans() {
           price,
           validity_days,
           code_offer,
+          plan_type,
+          sms_count,
+          airtime_amount,
           active,
           created_at,
           updated_at,

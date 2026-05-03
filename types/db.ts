@@ -50,6 +50,9 @@ export interface DataPlan {
   price: number;
   validity_days: number;
   active: boolean;
+  plan_type: 'data' | 'sms' | 'airtime';
+  sms_count?: number | null;
+  airtime_amount?: number | null;
   created_at: string;
   updated_at: string;
   telecom_operators?: TelecomOperator;
