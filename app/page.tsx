@@ -20,7 +20,8 @@ export default function Home() {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showPreregForm, setShowPreregForm] = useState(false);
-  
+  const [formErrors, setFormErrors] = useState<{ email?: string; fullName?: string; phone?: string }>({});
+
   // État séparé pour le formulaire "Inscription express" en bas
   const [expressFormData, setExpressFormData] = useState({
     email: '',
@@ -29,7 +30,11 @@ export default function Home() {
   const [isExpressSubmitting, setIsExpressSubmitting] = useState(false);
   const [expressSubmitStatus, setExpressSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [expressErrorMessage, setExpressErrorMessage] = useState<string>('');
+  const [expressFormErrors, setExpressFormErrors] = useState<{ email?: string; fullName?: string }>({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+  const PHONE_REGEX = /^[0-9+\s\-().]{8,}$/;
   
   // Récupération des statistiques de préinscription en temps réel
   const { stats, loading: statsLoading, error: statsError, refetch: refetchStats } = usePreregistrationStats();
@@ -45,15 +50,39 @@ export default function Home() {
 
   const handlePreregistrationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setSubmitStatus('idle');
+
+    // Validation côté client
+    const errors: { email?: string; fullName?: string; phone?: string } = {};
+    const emailTrimmed = preregistrationData.email.trim();
+    const nameTrimmed = preregistrationData.fullName.trim();
+    const phoneTrimmed = preregistrationData.phone.trim();
+
+    if (!emailTrimmed) {
+      errors.email = 'L\'adresse email est requise.';
+    } else if (!EMAIL_REGEX.test(emailTrimmed)) {
+      errors.email = 'Adresse email invalide.';
+    }
+
+    if (!nameTrimmed) {
+      errors.fullName = 'Le nom complet est requis.';
+    } else if (nameTrimmed.length < 2) {
+      errors.fullName = 'Le nom doit contenir au moins 2 caractères.';
+    }
+
+    if (phoneTrimmed && !PHONE_REGEX.test(phoneTrimmed)) {
+      errors.phone = 'Numéro invalide (au moins 8 chiffres).';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    setFormErrors({});
+    setIsSubmitting(true);
     
     try {
-      // Vérifier que l'email et le nom sont fournis
-      if (!preregistrationData.email || !preregistrationData.fullName) {
-        throw new Error('Email et nom complet sont requis');
-      }
-
       // Récupérer l'adresse IP et user agent pour l'audit trail
       const userAgent = navigator.userAgent;
       
@@ -128,15 +157,34 @@ export default function Home() {
 
   const handleExpressFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsExpressSubmitting(true);
     setExpressSubmitStatus('idle');
+
+    // Validation côté client
+    const errors: { email?: string; fullName?: string } = {};
+    const emailTrimmed = expressFormData.email.trim();
+    const nameTrimmed = expressFormData.fullName.trim();
+
+    if (!emailTrimmed) {
+      errors.email = 'L\'adresse email est requise.';
+    } else if (!EMAIL_REGEX.test(emailTrimmed)) {
+      errors.email = 'Adresse email invalide.';
+    }
+
+    if (!nameTrimmed) {
+      errors.fullName = 'Le nom est requis.';
+    } else if (nameTrimmed.length < 2) {
+      errors.fullName = 'Le nom doit contenir au moins 2 caractères.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setExpressFormErrors(errors);
+      return;
+    }
+
+    setExpressFormErrors({});
+    setIsExpressSubmitting(true);
     
     try {
-      // Vérifier que l'email et le nom sont fournis
-      if (!expressFormData.email || !expressFormData.fullName) {
-        throw new Error('Email et nom sont requis');
-      }
-
       // Récupérer l'adresse IP et user agent pour l'audit trail
       const userAgent = navigator.userAgent;
       
@@ -362,29 +410,51 @@ export default function Home() {
                       className="space-y-3"
                     >
                       <div className="grid grid-cols-1 gap-2 sm:gap-3">
-                        <input
-                          type="email"
-                          placeholder="Votre email"
-                          value={preregistrationData.email}
-                          onChange={(e) => setPreregistrationData(prev => ({ ...prev, email: e.target.value }))}
-                          required
-                          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-600 focus:ring-2 focus:ring-white focus:border-white focus:outline-none shadow-sm text-sm sm:text-base"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Votre nom complet"
-                          value={preregistrationData.fullName}
-                          onChange={(e) => setPreregistrationData(prev => ({ ...prev, fullName: e.target.value }))}
-                          required
-                          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-600 focus:ring-2 focus:ring-white focus:border-white focus:outline-none shadow-sm text-sm sm:text-base"
-                        />
-                        <input
-                          type="tel"
-                          placeholder="Votre téléphone (optionnel)"
-                          value={preregistrationData.phone}
-                          onChange={(e) => setPreregistrationData(prev => ({ ...prev, phone: e.target.value }))}
-                          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-600 focus:ring-2 focus:ring-white focus:border-white focus:outline-none shadow-sm text-sm sm:text-base"
-                        />
+                        <div>
+                          <input
+                            type="email"
+                            placeholder="Votre email"
+                            value={preregistrationData.email}
+                            onChange={(e) => {
+                              setPreregistrationData(prev => ({ ...prev, email: e.target.value }));
+                              if (formErrors.email) setFormErrors(prev => ({ ...prev, email: undefined }));
+                            }}
+                            className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border bg-white text-gray-900 placeholder-gray-600 focus:ring-2 focus:ring-white focus:outline-none shadow-sm text-sm sm:text-base ${formErrors.email ? 'border-red-400 focus:border-red-400' : 'border-gray-200 focus:border-white'}`}
+                          />
+                          {formErrors.email && (
+                            <p className="text-xs text-red-200 mt-1 ml-1">{formErrors.email}</p>
+                          )}
+                        </div>
+                        <div>
+                          <input
+                            type="text"
+                            placeholder="Votre nom complet"
+                            value={preregistrationData.fullName}
+                            onChange={(e) => {
+                              setPreregistrationData(prev => ({ ...prev, fullName: e.target.value }));
+                              if (formErrors.fullName) setFormErrors(prev => ({ ...prev, fullName: undefined }));
+                            }}
+                            className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border bg-white text-gray-900 placeholder-gray-600 focus:ring-2 focus:ring-white focus:outline-none shadow-sm text-sm sm:text-base ${formErrors.fullName ? 'border-red-400 focus:border-red-400' : 'border-gray-200 focus:border-white'}`}
+                          />
+                          {formErrors.fullName && (
+                            <p className="text-xs text-red-200 mt-1 ml-1">{formErrors.fullName}</p>
+                          )}
+                        </div>
+                        <div>
+                          <input
+                            type="tel"
+                            placeholder="Votre téléphone (optionnel)"
+                            value={preregistrationData.phone}
+                            onChange={(e) => {
+                              setPreregistrationData(prev => ({ ...prev, phone: e.target.value }));
+                              if (formErrors.phone) setFormErrors(prev => ({ ...prev, phone: undefined }));
+                            }}
+                            className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg border bg-white text-gray-900 placeholder-gray-600 focus:ring-2 focus:ring-white focus:outline-none shadow-sm text-sm sm:text-base ${formErrors.phone ? 'border-red-400 focus:border-red-400' : 'border-gray-200 focus:border-white'}`}
+                          />
+                          {formErrors.phone && (
+                            <p className="text-xs text-red-200 mt-1 ml-1">{formErrors.phone}</p>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="flex items-center text-xs sm:text-sm">
@@ -1049,24 +1119,38 @@ export default function Home() {
               </h3>
               <form onSubmit={handleExpressFormSubmit} className="space-y-3 sm:space-y-4">
                 <div className="grid grid-cols-1 gap-2 sm:gap-3">
-                  <input
-                    type="email"
-                    placeholder="Votre email"
-                    value={expressFormData.email}
-                    onChange={(e) => setExpressFormData(prev => ({ ...prev, email: e.target.value }))}
-                    required
-                    autoComplete="email"
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border-2 border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-green-300 focus:border-green-500 focus:outline-none shadow-sm text-sm sm:text-base"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Votre nom"
-                    value={expressFormData.fullName}
-                    onChange={(e) => setExpressFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                    required
-                    autoComplete="name"
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border-2 border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-green-300 focus:border-green-500 focus:outline-none shadow-sm text-sm sm:text-base"
-                  />
+                  <div>
+                    <input
+                      type="email"
+                      placeholder="Votre email"
+                      value={expressFormData.email}
+                      onChange={(e) => {
+                        setExpressFormData(prev => ({ ...prev, email: e.target.value }));
+                        if (expressFormErrors.email) setExpressFormErrors(prev => ({ ...prev, email: undefined }));
+                      }}
+                      autoComplete="email"
+                      className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border-2 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:outline-none shadow-sm text-sm sm:text-base ${expressFormErrors.email ? 'border-red-400 focus:ring-red-200 focus:border-red-500' : 'border-gray-300 focus:ring-green-300 focus:border-green-500'}`}
+                    />
+                    {expressFormErrors.email && (
+                      <p className="text-xs text-red-200 mt-1 ml-1">{expressFormErrors.email}</p>
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Votre nom"
+                      value={expressFormData.fullName}
+                      onChange={(e) => {
+                        setExpressFormData(prev => ({ ...prev, fullName: e.target.value }));
+                        if (expressFormErrors.fullName) setExpressFormErrors(prev => ({ ...prev, fullName: undefined }));
+                      }}
+                      autoComplete="name"
+                      className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border-2 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:outline-none shadow-sm text-sm sm:text-base ${expressFormErrors.fullName ? 'border-red-400 focus:ring-red-200 focus:border-red-500' : 'border-gray-300 focus:ring-green-300 focus:border-green-500'}`}
+                    />
+                    {expressFormErrors.fullName && (
+                      <p className="text-xs text-red-200 mt-1 ml-1">{expressFormErrors.fullName}</p>
+                    )}
+                  </div>
                 </div>
                 
                 <motion.button
