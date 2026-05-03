@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/authStore';
+import { mapAuthError } from '@/lib/auth-errors';
 import Link from 'next/link';
 
 function LoginPageContent() {
@@ -18,8 +19,11 @@ function LoginPageContent() {
   // Redirection si déjà connecté
   useEffect(() => {
     if (!isLoading && user) {
-      const redirectTo = searchParams.get('redirect');
-      
+      const rawRedirect = searchParams.get('redirect');
+      // Valider : doit être un chemin interne (commence par / mais pas //)
+      const redirectTo = rawRedirect && /^\/(?!\/)/.test(rawRedirect)
+        ? rawRedirect
+        : null;
       if (redirectTo) {
         router.push(redirectTo);
       } else if (isAdmin) {
@@ -44,7 +48,7 @@ function LoginPageContent() {
       
     } catch (err: any) {
       console.error('Erreur de connexion:', err);
-      setError(err.message || 'Email ou mot de passe incorrect');
+      setError(mapAuthError(err.message || ''));
       setLoading(false);
     }
   };

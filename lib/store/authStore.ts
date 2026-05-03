@@ -196,7 +196,11 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: AUTH_STORAGE_KEY,
-      partialize: (state) => ({ user: state.user, isAdmin: state.isAdmin, isSupport: state.isSupport }),
+      partialize: (state) => ({
+        user: state.user,
+        // isAdmin et isSupport ne sont PAS persistés : ils sont recalculés
+        // à chaque checkSession pour éviter la manipulation du localStorage.
+      }),
     }
   )
 );

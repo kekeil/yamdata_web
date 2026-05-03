@@ -5,6 +5,16 @@ import { createServerClient } from '@supabase/ssr';
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
+  // Bloquer /init-admin en production
+  if (path === '/init-admin' || path.startsWith('/init-admin/')) {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { error: 'Not Found' },
+        { status: 404 }
+      );
+    }
+  }
+
   const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/signup'];
   const protectedRoutes = ['/forfaits', '/epargne', '/transactions', '/profil', '/dashboard'];
   const adminRoutes = ['/admin'];
@@ -42,6 +52,20 @@ export async function middleware(req: NextRequest) {
 
   // Récupérer la session (méthode correcte pour SSR)
   const { data: { user } } = await supabase.auth.getUser();
+
+  // Pour les routes admin, vérifier le rôle côté serveur
+  if (isAdminRoute && user) {
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('roles!inner(name)')
+      .eq('user_id', user.id)
+      .single();
+
+    const roleName = (roleData as any)?.roles?.name;
+    if (roleName !== 'admin') {
+      return NextResponse.redirect(new URL('/access-denied', req.url));
+    }
+  }
 
   // Route protégée sans session → login
   if ((isProtectedRoute || isAdminRoute) && !user) {

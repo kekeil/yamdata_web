@@ -5,7 +5,6 @@
  * IMPORTANT: N'utilisez ce client que pour les opérations administratives
  * qui nécessitent de contourner les politiques RLS
  */
-'use client';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
@@ -29,5 +28,5 @@ export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseService
 
 // Fonction pour vérifier si le client admin est disponible
 export function isAdminClientAvailable(): boolean {
-  return !!supabaseAdmin;
+  return !!supabaseServiceKey;
 } 

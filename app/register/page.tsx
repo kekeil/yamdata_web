@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useAuthStore } from '@/lib/store/authStore';
+import { mapAuthError } from '@/lib/auth-errors';
 import Link from 'next/link';
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 
@@ -249,7 +250,7 @@ Vous pouvez maintenant vous connecter !`);
       } else if (err.code === '23505') {
         setError('Ce numéro de téléphone ou cet email est déjà utilisé');
       } else {
-        setError(err.message || 'Une erreur est survenue lors de l\'inscription');
+        setError(mapAuthError(err.message || ''));
       }
     } finally {
       setLoading(false);

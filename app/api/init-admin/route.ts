@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server';
 import { initializeAdmin } from '@/lib/init-admin';
 import { headers } from 'next/headers';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // Fonction pour vérifier la validité du secret
 function isValidSecret(secret: string | null): boolean {
@@ -17,6 +18,17 @@ function isValidSecret(secret: string | null): boolean {
 
 export async function POST(request: Request) {
   try {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      ?? request.headers.get('x-real-ip')
+      ?? 'unknown';
+    const rl = checkRateLimit(`init-admin:${ip}`, 5, 15 * 60 * 1000); // 5 req / 15 min
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Trop de tentatives. Réessayez plus tard.' },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } }
+      );
+    }
+
     // Vérification de l'origine de la requête (CSRF protection)
     const headersList = await headers();
     const referer = headersList.get('referer') || '';

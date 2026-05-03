@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase/client';
+import { mapAuthError } from '@/lib/auth-errors';
 
 interface SignupFormData {
   fullName: string;
@@ -71,7 +72,7 @@ export default function SignupPage() {
       alert('Compte créé avec succès ! Vérifiez votre email pour confirmer votre inscription.');
       router.push('/login');
     } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue lors de l\'inscription');
+      setError(mapAuthError(err.message || ''));
     } finally {
       setIsLoading(false);
     }

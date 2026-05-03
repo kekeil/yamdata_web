@@ -1,4 +1,3 @@
-"use client";
 import { supabase } from './supabase/client';
 import { supabaseAdmin, isAdminClientAvailable } from './supabase/admin';
 
@@ -14,9 +13,9 @@ export async function initializeAdmin(secretKey: string) {
       throw new Error('Client Supabase avec privilèges d\'administration non disponible. Vérifiez SUPABASE_SERVICE_ROLE_KEY dans les variables d\'environnement.');
     }
 
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+    const adminEmail = process.env.ADMIN_EMAIL;
     const adminPassword = process.env.ADMIN_PASSWORD;
-    const adminPhone = process.env.NEXT_PUBLIC_ADMIN_PHONE;
+    const adminPhone = process.env.ADMIN_PHONE;
     
     if (!adminEmail || !adminPassword || !adminPhone) {
       throw new Error('Informations d\'administrateur manquantes dans les variables d\'environnement');
