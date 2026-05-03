@@ -26,7 +26,8 @@ interface SavingStats {
 export default function SavingsPage() {
   const { 
     parameters, 
-    stats, 
+    stats,
+    savingStatistics,
     loading, 
     error, 
     updateParameter, 
@@ -161,6 +162,41 @@ export default function SavingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Vue SQL saving_statistics (agrégats par type) */}
+      {savingStatistics.length > 0 && (
+        <div>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Répartition par type d&apos;épargne</h2>
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Comptes</th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Solde total</th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Moyenne</th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Min / Max</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {savingStatistics.map((row) => (
+                    <tr key={row.saving_type} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.saving_type}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-right">{Number(row.total_users).toLocaleString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">{Number(row.total_balance).toLocaleString()} FCFA</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-right">{Number(row.average_balance).toLocaleString()} FCFA</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                        {Number(row.min_balance).toLocaleString()} / {Number(row.max_balance).toLocaleString()} FCFA
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Paramètres d'épargne */}
       <div>

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/authStore';
 import Link from 'next/link';
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, user, isAdmin, isLoading } = useAuthStore();
@@ -172,5 +172,24 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function LoginSuspenseFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="text-center">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-600" />
+        <p className="mt-4 text-gray-600">Chargement...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginSuspenseFallback />}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

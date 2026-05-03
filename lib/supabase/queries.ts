@@ -23,7 +23,18 @@ export const fetchUserDetails = async (userId: string) => {
       created_at,
       user_roles ( roles ( name ) ),
       user_savings ( saving_type_id, balance, last_interest_date ),
-      transactions ( id, amount_paid, data_cost, saving_amount, management_fee, net_saving, created_at )
+      transactions (
+        id,
+        transaction_type,
+        amount_paid,
+        data_cost,
+        saving_amount,
+        management_fee_rate,
+        management_fee_amount,
+        net_saving,
+        status,
+        created_at
+      )
     `)
     .eq('id', userId)
     .single();
@@ -63,28 +74,23 @@ export const updateSavingParameter = async (id: number, saving_rate: number, man
     .eq('id', id);
 };
 
-// Récupérer les statistiques globales pour le dashboard
+// Statistiques agrégées (vue `dashboard_stats`, pas de RPC)
 export const fetchDashboardStats = async () => {
-  // Nombre total d'utilisateurs
-  const { count: usersCount } = await supabase
-    .from('profiles')
-    .select('*', { count: 'exact', head: true });
-    
-  // Montant total d'épargne
-  const { data: savingsData } = await supabase
-    .from('user_savings')
-    .select('balance');
-    
-  const totalSavings = savingsData?.reduce((sum, item) => sum + Number(item.balance), 0) || 0;
-    
-  // Nombre total de transactions
-  const { count: transactionsCount } = await supabase
-    .from('transactions')
-    .select('*', { count: 'exact', head: true });
-    
+  const { data, error } = await supabase
+    .from('dashboard_stats')
+    .select('*')
+    .single();
+
+  if (error) throw error;
+
   return {
-    usersCount,
-    totalSavings,
-    transactionsCount
+    usersCount: data?.users_count ?? 0,
+    totalSavings: Number(data?.total_savings ?? 0),
+    transactionsCount: data?.transactions_count ?? 0,
+    averageSaving: Number(data?.average_saving ?? 0),
+    operatorsCount: data?.operators_count ?? 0,
+    plansCount: data?.plans_count ?? 0,
+    transactionsThisMonth: data?.transactions_this_month ?? 0,
+    newUsersThisWeek: data?.new_users_this_week ?? 0,
   };
 }; 

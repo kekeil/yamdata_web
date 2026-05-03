@@ -20,6 +20,7 @@ interface DataPlan {
   validity_days: number;
   description: string | null;
   operator_id: number;
+  code_offer: string | null;
 }
 
 interface PlanWithOperator extends DataPlan {
@@ -80,7 +81,15 @@ export default function ForfaitsPage() {
       const { data, error } = await supabase
         .from('data_plans')
         .select(`
-          *,
+          id,
+          name,
+          volume_mb,
+          price,
+          validity_days,
+          description,
+          operator_id,
+          code_offer,
+          active,
           telecom_operators!inner(name)
         `)
         .eq('operator_id', operatorId)
@@ -212,6 +221,11 @@ export default function ForfaitsPage() {
                   >
                     <div className="mb-4">
                       <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                      {plan.code_offer ? (
+                        <p className="text-xs text-gray-500 font-mono mt-0.5">
+                          code: {plan.code_offer}
+                        </p>
+                      ) : null}
                       <p className="text-3xl font-bold text-green-600 mt-2">
                         {formatVolume(plan.volume_mb)}
                       </p>

@@ -8,6 +8,7 @@ interface DataPlan {
   volume_mb: number;
   price: number;
   validity_days: number;
+  code_offer: string | null;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -16,6 +17,43 @@ interface DataPlan {
     name: string;
     commission_rate: number;
   };
+}
+
+const UPDATABLE_PLAN_KEYS = [
+  'name',
+  'volume_mb',
+  'price',
+  'validity_days',
+  'operator_id',
+  'code_offer',
+  'active',
+] as const;
+
+type UpdatablePlanKey = (typeof UPDATABLE_PLAN_KEYS)[number];
+
+function pickUpdatablePlanPayload(
+  partial: Partial<DataPlan> & { operator_id?: number }
+): Partial<Record<UpdatablePlanKey, string | number | boolean | null>> {
+  const out: Partial<Record<UpdatablePlanKey, string | number | boolean | null>> = {};
+  for (const key of UPDATABLE_PLAN_KEYS) {
+    if (!(key in partial) || partial[key as keyof typeof partial] === undefined) {
+      continue;
+    }
+    const v = partial[key as keyof typeof partial];
+    if (key === 'name' && typeof v === 'string') {
+      out.name = v.trim();
+    } else if (key === 'code_offer') {
+      if (v === null || v === '') {
+        out.code_offer = null;
+      } else if (typeof v === 'string') {
+        const t = v.trim();
+        out.code_offer = t === '' ? null : t;
+      }
+    } else {
+      (out as Record<string, unknown>)[key] = v as string | number | boolean | null;
+    }
+  }
+  return out;
 }
 
 interface Operator {
@@ -50,6 +88,7 @@ export function useOptimizedPlans() {
           volume_mb,
           price,
           validity_days,
+          code_offer,
           active,
           created_at,
           updated_at,
@@ -115,7 +154,11 @@ export function useOptimizedPlans() {
           price: planData.price,
           validity_days: planData.validity_days,
           operator_id: planData.operator_id,
-          active: true
+          code_offer:
+            planData.code_offer != null && String(planData.code_offer).trim() !== ''
+              ? String(planData.code_offer).trim()
+              : null,
+          active: true,
         })
         .select(`
           id,
@@ -123,6 +166,7 @@ export function useOptimizedPlans() {
           volume_mb,
           price,
           validity_days,
+          code_offer,
           active,
           created_at,
           updated_at,
@@ -165,13 +209,18 @@ export function useOptimizedPlans() {
     }
   }, []);
 
-  const updatePlan = useCallback(async (id: number, updates: Partial<DataPlan>) => {
+  const updatePlan = useCallback(async (id: number, partial: Partial<DataPlan> & { operator_id?: number }) => {
     try {
       setError(null);
-      
+
+      const payload = pickUpdatablePlanPayload(partial);
+      if (Object.keys(payload).length === 0) {
+        throw new Error('Aucun champ à mettre à jour.');
+      }
+
       const { data, error } = await supabase
         .from('data_plans')
-        .update(updates)
+        .update(payload)
         .eq('id', id)
         .select(`
           id,
@@ -179,6 +228,7 @@ export function useOptimizedPlans() {
           volume_mb,
           price,
           validity_days,
+          code_offer,
           active,
           created_at,
           updated_at,

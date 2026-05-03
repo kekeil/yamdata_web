@@ -90,7 +90,13 @@ export default function AdminHeader() {
           console.error('Erreur lors de la récupération du rôle:', roleError);
         }
 
-        const roleName = data?.roles?.name || 'utilisateur';
+        const roles = data?.roles as { name: string } | { name: string }[] | null | undefined;
+        const roleName =
+          roles && !Array.isArray(roles)
+            ? roles.name
+            : Array.isArray(roles) && roles[0]
+              ? roles[0].name
+              : 'utilisateur';
 
         setUserProfile({
           id: user.id,

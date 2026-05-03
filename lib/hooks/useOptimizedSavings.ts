@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useOptimizedAuth } from './useOptimizedAuth';
+import type { SavingStatistics } from '@/types/db';
 
 interface SavingParameter {
   id: number;
@@ -34,6 +35,8 @@ export function useOptimizedSavings() {
     totalSavings: 0,
     averageSavingPerUser: 0
   });
+  /** Agrégats par type d'épargne (vue `saving_statistics`). */
+  const [savingStatistics, setSavingStatistics] = useState<SavingStatistics[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const hasFetched = useRef(false);
@@ -87,19 +90,28 @@ export function useOptimizedSavings() {
 
   const fetchStats = useCallback(async () => {
     try {
-      // Récupérer le nombre d'utilisateurs avec épargne
       const { count: userCount } = await supabase
         .from('user_savings')
         .select('*', { count: 'exact', head: true });
-      
-      // Récupérer le total d'épargne
+
       const { data: savingsData } = await supabase
         .from('user_savings')
         .select('balance');
-      
+
+      const { data: statRows, error: statViewError } = await supabase
+        .from('saving_statistics')
+        .select('*');
+
+      if (statViewError) {
+        console.error('Erreur lors de la récupération de saving_statistics:', statViewError);
+        setSavingStatistics([]);
+      } else {
+        setSavingStatistics((statRows as SavingStatistics[]) || []);
+      }
+
       const totalSavings = savingsData?.reduce((sum, item) => sum + Number(item.balance), 0) || 0;
       const avgSaving = userCount ? totalSavings / userCount : 0;
-      
+
       setStats({
         totalUsers: userCount || 0,
         totalSavings,
@@ -185,11 +197,13 @@ export function useOptimizedSavings() {
   const refreshParameters = useCallback(() => {
     hasFetched.current = false;
     fetchParameters();
-  }, [fetchParameters]);
+    fetchStats();
+  }, [fetchParameters, fetchStats]);
 
   return {
     parameters,
     stats,
+    savingStatistics,
     loading,
     error,
     updateParameter,

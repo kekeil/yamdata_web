@@ -1,5 +1,12 @@
 // Types générés à partir du schéma Supabase
 
+/** Lignes embarquées `profiles → user_savings` (schéma réel). */
+export interface ProfileUserSaving {
+  saving_type_id: number;
+  balance: number;
+  last_interest_date?: string;
+}
+
 export interface Profile {
   id: string;
   email: string;
@@ -9,7 +16,7 @@ export interface Profile {
   created_at: string;
   updated_at: string;
   user_roles?: UserRole[];
-  savings_accounts?: SavingsAccount[];
+  user_savings?: ProfileUserSaving[];
   subscriptions?: Subscription[];
   transactions?: Transaction[];
 }
@@ -61,63 +68,22 @@ export interface Subscription {
   data_plans?: DataPlan;
 }
 
-export interface SavingsSettings {
-  id: number;
-  default_savings_rate: number;
-  default_interest_rate: number;
-  service_fee_rate: number;
-  min_withdrawal_amount: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface SavingsAccount {
-  id: string; // UUID
-  user_id: string;
-  balance: number;
-  type: 'blocked' | 'semi_blocked' | 'free';
-  interest_rate: number;
-  last_interest_date?: string;
-  metadata?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface SavingsGoal {
-  id: string; // UUID
-  user_id: string;
-  account_id: string;
-  name: string;
-  target_amount: number;
-  current_amount: number;
-  target_date?: string;
-  status: 'active' | 'completed' | 'cancelled';
-  created_at: string;
-  updated_at: string;
-}
-
-export interface PaymentMethod {
-  id: number;
-  name: string;
-  type: 'mobile_money' | 'card' | 'bank_transfer';
-  is_active: boolean;
-  metadata?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Transaction {
-  id: string; // UUID
+  id: number;
   user_id: string;
-  type: 'purchase' | 'savings' | 'withdrawal' | 'refund';
-  amount: number;
-  status: 'pending' | 'completed' | 'failed' | 'cancelled';
-  payment_method_id?: number;
-  reference: string;
-  metadata?: Record<string, any>;
+  transaction_type: string;
+  amount_paid: number;
+  data_cost: number;
+  saving_amount: number;
+  management_fee_rate: number;
+  management_fee_amount?: number | null;
+  net_saving?: number | null;
+  reference_id?: string | null;
+  status: string;
+  payment_method?: string | null;
+  metadata?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
-  payment_method?: PaymentMethod;
 }
 
 // Types pour les vues
@@ -144,22 +110,24 @@ export interface PopularDataPlan {
   subscription_count: number;
 }
 
-export interface UserSavingsSummary {
-  user_id: string;
-  email?: string;
-  phone?: string;
+/** Ligne de la vue `saving_statistics` (agrégats par type d'épargne). */
+export interface SavingStatistics {
+  saving_type: string;
+  total_users: number;
   total_balance: number;
-  savings_count: number;
-  last_transaction_date?: string;
-  account_types: string[];
+  average_balance: number;
+  min_balance: number;
+  max_balance: number;
 }
 
-// Types pour les statistiques
-export interface DashboardStats {
-  usersCount: number;
-  totalSavings: number;
-  transactionsCount: number;
-  averageSaving: number;
-  operatorsCount: number;
-  plansCount: number;
+/** Ligne unique de la vue `dashboard_stats`. */
+export interface DashboardStatsView {
+  users_count: number;
+  total_savings: number;
+  transactions_count: number;
+  average_saving: number;
+  operators_count: number;
+  plans_count: number;
+  transactions_this_month: number;
+  new_users_this_week: number;
 } 

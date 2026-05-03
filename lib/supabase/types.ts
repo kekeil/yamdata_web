@@ -9,23 +9,6 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      users: {
-        Row: {
-          id: string
-          phone: string
-          created_at: string
-        }
-        Insert: {
-          id: string
-          phone: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          phone?: string
-          created_at?: string
-        }
-      }
       roles: {
         Row: {
           id: number
@@ -219,30 +202,53 @@ export interface Database {
         Row: {
           id: number
           user_id: string
+          transaction_type: string
           amount_paid: number
           data_cost: number
           saving_amount: number
-          management_fee: number
-          net_saving: number
+          management_fee_rate: number
+          management_fee_amount: number | null
+          net_saving: number | null
+          reference_id: string | null
+          status: string
+          payment_method: string | null
+          metadata: Json | null
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: number
           user_id: string
+          transaction_type: string
           amount_paid: number
           data_cost: number
           saving_amount: number
-          management_fee: number
+          management_fee_rate: number
+          management_fee_amount?: number | null
+          net_saving?: number | null
+          reference_id?: string | null
+          status?: string
+          payment_method?: string | null
+          metadata?: Json | null
           created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: number
           user_id?: string
+          transaction_type?: string
           amount_paid?: number
           data_cost?: number
           saving_amount?: number
-          management_fee?: number
+          management_fee_rate?: number
+          management_fee_amount?: number | null
+          net_saving?: number | null
+          reference_id?: string | null
+          status?: string
+          payment_method?: string | null
+          metadata?: Json | null
           created_at?: string
+          updated_at?: string
         }
       }
       profiles: {
