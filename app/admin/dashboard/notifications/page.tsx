@@ -268,8 +268,10 @@ export default function AdminNotificationsPage() {
       const campaign_id = (inserted as { id: string } | null)?.id;
       if (!campaign_id) throw new Error('Campagne créée sans identifiant.');
 
-      const { error: fnError } = await supabase.functions.invoke('send-push-notification', {
-        body: {
+      const fnRes = await fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           mode: 'campaign',
           campaign_id,
           title: t,
@@ -278,10 +280,12 @@ export default function AdminNotificationsPage() {
           segment_id: segId ?? undefined,
           target_users: target_users ?? undefined,
           created_by: user.id,
-        },
+        }),
       });
-
-      if (fnError) throw fnError;
+      if (!fnRes.ok) {
+        const errData = await fnRes.json().catch(() => ({}));
+        throw new Error(errData.error || "Erreur lors de l'envoi.");
+      }
 
       setShowModal(false);
       await loadCampaigns();
