@@ -78,11 +78,13 @@ export default function Home() {
         .single();
 
       if (error) {
-        // Gestion spécifique des erreurs
-        if (error.code === '23505') { // Violation de contrainte unique (email déjà existant)
+        console.error('Erreur Supabase préinscription:', error);
+        if (error.code === '23505') {
           throw new Error('Cette adresse email est déjà enregistrée pour la préinscription.');
-        } else if (error.code === '23514') { // Violation de contrainte de validation
+        } else if (error.code === '23514') {
           throw new Error('Les données fournies ne sont pas valides. Veuillez vérifier votre saisie.');
+        } else if (error.code === '42703') {
+          throw new Error('Erreur de configuration de la base de données. Contactez le support.');
         } else {
           throw new Error('Une erreur s\'est produite lors de l\'enregistrement. Veuillez réessayer.');
         }
@@ -159,13 +161,13 @@ export default function Home() {
         .single();
 
       if (error) {
-        console.error('Erreur Supabase lors de la préinscription express:', error);
-        
-        // Gestion spécifique des erreurs
-        if (error.code === '23505') { // Violation de contrainte unique (email déjà existant)
+        console.error('Erreur Supabase préinscription express:', error);
+        if (error.code === '23505') {
           throw new Error('Cette adresse email est déjà enregistrée pour la préinscription.');
-        } else if (error.code === '23514') { // Violation de contrainte de validation
+        } else if (error.code === '23514') {
           throw new Error('Les données fournies ne sont pas valides. Veuillez vérifier votre saisie.');
+        } else if (error.code === '42703') {
+          throw new Error('Erreur de configuration de la base de données. Contactez le support.');
         } else {
           throw new Error('Une erreur s\'est produite lors de l\'enregistrement. Veuillez réessayer.');
         }
