@@ -37,7 +37,15 @@ export async function POST(request: Request) {
 
     // Appel edge function avec INTERNAL_SECRET côté serveur
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const internalSecret = process.env.INTERNAL_SECRET!;
+    const internalSecret = process.env.INTERNAL_SECRET;
+
+    if (!internalSecret) {
+      console.error('[api/notifications/send] INTERNAL_SECRET manquant côté Next.js');
+      return NextResponse.json(
+        { error: 'Configuration serveur incomplète (INTERNAL_SECRET manquant)' },
+        { status: 500 },
+      );
+    }
 
     const res = await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
       method: 'POST',
@@ -51,6 +59,7 @@ export async function POST(request: Request) {
     const data = await res.json();
 
     if (!res.ok) {
+      console.error('[api/notifications/send] edge function status', res.status, data);
       return NextResponse.json(
         { error: data?.error || 'Erreur edge function' },
         { status: res.status }

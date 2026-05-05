@@ -75,8 +75,8 @@ interface PromotionRow {
   ends_at: string | null;
   operator_id: number | null;
   recurrence_days: number[] | null;
-  time_start: string | null;
-  time_end: string | null;
+  daily_start_time: string | null;
+  daily_end_time: string | null;
   active: boolean;
   created_at: string;
 }
@@ -90,8 +90,8 @@ type PromotionFormState = {
   ends_at_local: string;
   operator_id: number | null;
   recurrence_days: number[];
-  time_start: string;
-  time_end: string;
+  daily_start_time: string;
+  daily_end_time: string;
   active: boolean;
 };
 
@@ -115,8 +115,8 @@ function defaultForm(): PromotionFormState {
     ends_at_local: '',
     operator_id: null,
     recurrence_days: [],
-    time_start: '',
-    time_end: '',
+    daily_start_time: '',
+    daily_end_time: '',
     active: true,
   };
 }
@@ -131,8 +131,8 @@ function rowToForm(row: PromotionRow): PromotionFormState {
     ends_at_local: row.ends_at ? toDatetimeLocalValue(new Date(row.ends_at)) : '',
     operator_id: row.operator_id,
     recurrence_days: normalizeRecurrenceFromDb(row.recurrence_days),
-    time_start: parseTimeForInput(row.time_start),
-    time_end: parseTimeForInput(row.time_end),
+    daily_start_time: parseTimeForInput(row.daily_start_time),
+    daily_end_time: parseTimeForInput(row.daily_end_time),
     active: row.active,
   };
 }
@@ -169,7 +169,7 @@ export default function AdminPromotionsPage() {
         supabase
           .from('promotions')
           .select(
-            'id, title, description, emoji, accent_color, starts_at, ends_at, operator_id, recurrence_days, time_start, time_end, active, created_at',
+            'id, title, description, emoji, accent_color, starts_at, ends_at, operator_id, recurrence_days, daily_start_time, daily_end_time, active, created_at',
           )
           .order('created_at', { ascending: false }),
         supabase.from('active_promotions').select('id'),
@@ -273,8 +273,8 @@ export default function AdminPromotionsPage() {
       ends_at: form.ends_at_local.trim() ? new Date(form.ends_at_local).toISOString() : null,
       operator_id: form.operator_id,
       recurrence_days,
-      time_start: timeInputToDb(form.time_start),
-      time_end: timeInputToDb(form.time_end),
+      daily_start_time: timeInputToDb(form.daily_start_time),
+      daily_end_time: timeInputToDb(form.daily_end_time),
       active: form.active,
     };
 
@@ -456,7 +456,7 @@ export default function AdminPromotionsPage() {
                         <td className="px-4 py-3 text-sm text-gray-700">
                           <div>{formatRecurrence(row.recurrence_days)}</div>
                           <div className="text-xs text-gray-500 mt-0.5">
-                            {formatTimeRange(row.time_start, row.time_end)}
+                            {formatTimeRange(row.daily_start_time, row.daily_end_time)}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap text-sm">
@@ -655,8 +655,8 @@ export default function AdminPromotionsPage() {
               <input
                 id="promo-time-start"
                 type="time"
-                value={form.time_start}
-                onChange={(e) => setForm((f) => ({ ...f, time_start: e.target.value }))}
+                value={form.daily_start_time}
+                onChange={(e) => setForm((f) => ({ ...f, daily_start_time: e.target.value }))}
                 disabled={saveLoading}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
@@ -668,8 +668,8 @@ export default function AdminPromotionsPage() {
               <input
                 id="promo-time-end"
                 type="time"
-                value={form.time_end}
-                onChange={(e) => setForm((f) => ({ ...f, time_end: e.target.value }))}
+                value={form.daily_end_time}
+                onChange={(e) => setForm((f) => ({ ...f, daily_end_time: e.target.value }))}
                 disabled={saveLoading}
                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
