@@ -12,6 +12,7 @@ import {
   PhoneIcon,
   UserPlusIcon,
   BellIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -19,6 +20,7 @@ const navigation = [
   { name: 'Utilisateurs', href: '/admin/dashboard/users', icon: UsersIcon },
   { name: 'Préinscriptions', href: '/admin/dashboard/preregistrations', icon: UserPlusIcon },
   { name: 'Forfaits', href: '/admin/dashboard/plans', icon: PhoneIcon },
+  { name: 'Promotions', href: '/admin/dashboard/promotions', icon: SparklesIcon },
   { name: 'Épargne', href: '/admin/dashboard/savings', icon: CurrencyDollarIcon },
   { name: 'Opérateurs', href: '/admin/dashboard/operators', icon: BuildingOfficeIcon },
   { name: 'Notifications', href: '/admin/dashboard/notifications', icon: BellIcon },

@@ -297,6 +297,15 @@ Vous pouvez maintenant vous connecter !`);
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-50 to-white px-4 py-8">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
+          <Link
+            href="/"
+            className="inline-flex items-center text-sm text-gray-500 hover:text-green-600 mb-6 transition-colors"
+          >
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Retour à l'accueil
+          </Link>
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { ArrowLeftIcon, EnvelopeIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { EnvelopeIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -114,13 +114,14 @@ export default function ForgotPasswordPage() {
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-50 to-white px-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Bouton retour */}
           <Link
-            href="/login"
-            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+            href="/"
+            className="inline-flex items-center text-sm text-gray-500 hover:text-green-600 mb-6 transition-colors"
           >
-            <ArrowLeftIcon className="h-4 w-4" />
-            Retour
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Retour à l'accueil
           </Link>
 
           {/* Header */}

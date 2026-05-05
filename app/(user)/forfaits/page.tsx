@@ -27,6 +27,15 @@ interface PlanWithOperator extends DataPlan {
   operator_name: string;
 }
 
+interface ActivePromo {
+  id: string;
+  title: string;
+  description: string | null;
+  accent_color: string;
+  emoji: string | null;
+  operator_name: string | null;
+}
+
 export default function ForfaitsPage() {
   const { user, isLoading } = useAuthStore();
   const router = useRouter();
@@ -35,6 +44,7 @@ export default function ForfaitsPage() {
   const [selectedOperator, setSelectedOperator] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<PlanWithOperator | null>(null);
+  const [promos, setPromos] = useState<ActivePromo[]>([]);
 
   // Redirection si non authentifié
   useEffect(() => {
@@ -47,6 +57,21 @@ export default function ForfaitsPage() {
     if (user) {
       fetchOperators();
     }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    void supabase
+      .from('active_promotions')
+      .select('id, title, description, accent_color, emoji, operator_name')
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Promotions:', error);
+          setPromos([]);
+          return;
+        }
+        setPromos((data as ActivePromo[]) ?? []);
+      });
   }, [user]);
 
   useEffect(() => {
@@ -163,6 +188,37 @@ export default function ForfaitsPage() {
             Choisissez votre opérateur et votre forfait pour commencer à épargner
           </p>
         </motion.div>
+
+        {promos.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              Promotions du moment
+            </h2>
+            <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4">
+              {promos.map((p) => (
+                <div
+                  key={p.id}
+                  style={{
+                    borderColor: p.accent_color,
+                    backgroundColor: `${p.accent_color}10`,
+                  }}
+                  className="snap-start min-w-[280px] max-w-[320px] rounded-2xl border-2 p-5 flex-shrink-0"
+                >
+                  <div className="text-3xl mb-2">{p.emoji ?? '🎁'}</div>
+                  <div className="font-bold text-gray-900">{p.title}</div>
+                  {p.description && (
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{p.description}</p>
+                  )}
+                  {p.operator_name && (
+                    <div className="mt-3 inline-block text-xs px-2 py-1 rounded-full bg-white/70 text-gray-700">
+                      {p.operator_name}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Sélection d'opérateur */}
         <div className="mb-8">
