@@ -39,10 +39,11 @@ function parseTimeForInput(t: string | null): string {
   return t.slice(0, 5);
 }
 
+// Tâche 3 — stocke uniquement HH:MM, jamais HH:MM:SS
 function timeInputToDb(t: string): string | null {
   const v = t.trim();
   if (!v) return null;
-  return v.length === 5 ? `${v}:00` : v;
+  return v.length >= 5 ? v.slice(0, 5) : v;
 }
 
 function normalizeRecurrenceFromDb(days: unknown): number[] {
@@ -58,6 +59,28 @@ function normalizeRecurrenceArray(days: unknown): number[] | null {
     .filter((x): x is number => typeof x === 'number' && x >= 1 && x <= 7)
     .sort((a, b) => a - b);
   return nums.length === 0 ? null : nums;
+}
+
+// Tâche 1 — messages d'erreur explicites selon le code Supabase/Postgres
+function supabaseErrorMessage(e: unknown, context: 'load' | 'save' | 'toggle' | 'delete' = 'save'): string {
+  if (e && typeof e === 'object') {
+    const err = e as { code?: string; message?: string; details?: string };
+    const code = err.code ?? '';
+    const msg = err.message ?? '';
+    const details = err.details ?? '';
+
+    if (code === '42501' || msg.toLowerCase().includes('permission')) {
+      if (context === 'load') {
+        return "Lecture impossible : votre compte n'est probablement pas administrateur.";
+      }
+      return 'Votre compte n\'a pas le droit d\'enregistrer des promotions. Vérifiez avec un administrateur que votre rôle est bien "admin".';
+    }
+    if (code === '23502') return `Un champ obligatoire est vide : ${details}`;
+    if (code === '23505') return 'Une promotion avec ces caractéristiques existe déjà.';
+    if (msg) return code ? `${msg} (${code})` : msg;
+  }
+  if (e instanceof Error) return e.message;
+  return 'Opération impossible.';
 }
 
 interface TelecomOperatorRow {
@@ -79,6 +102,7 @@ interface PromotionRow {
   daily_end_time: string | null;
   active: boolean;
   created_at: string;
+  image_url: string | null;
 }
 
 type PromotionFormState = {
@@ -93,6 +117,8 @@ type PromotionFormState = {
   daily_start_time: string;
   daily_end_time: string;
   active: boolean;
+  image_url: string | null;
+  image_file: File | null;
 };
 
 const WEEK_CHECKBOXES: { value: number; label: string }[] = [
@@ -118,6 +144,8 @@ function defaultForm(): PromotionFormState {
     daily_start_time: '',
     daily_end_time: '',
     active: true,
+    image_url: null,
+    image_file: null,
   };
 }
 
@@ -134,6 +162,8 @@ function rowToForm(row: PromotionRow): PromotionFormState {
     daily_start_time: parseTimeForInput(row.daily_start_time),
     daily_end_time: parseTimeForInput(row.daily_end_time),
     active: row.active,
+    image_url: row.image_url,
+    image_file: null,
   };
 }
 
@@ -169,7 +199,7 @@ export default function AdminPromotionsPage() {
         supabase
           .from('promotions')
           .select(
-            'id, title, description, emoji, accent_color, starts_at, ends_at, operator_id, recurrence_days, daily_start_time, daily_end_time, active, created_at',
+            'id, title, description, emoji, accent_color, starts_at, ends_at, operator_id, recurrence_days, daily_start_time, daily_end_time, active, created_at, image_url',
           )
           .order('created_at', { ascending: false }),
         supabase.from('active_promotions').select('id'),
@@ -194,8 +224,7 @@ export default function AdminPromotionsPage() {
       setActiveIds(ids);
       setOperators((opRes.data as TelecomOperatorRow[]) ?? []);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Impossible de charger les promotions.';
-      setListError(msg);
+      setListError(supabaseErrorMessage(e, 'load'));
       setPromotions([]);
       setActiveIds(new Set());
       setOperators([]);
@@ -264,6 +293,37 @@ export default function AdminPromotionsPage() {
         ? null
         : [...form.recurrence_days].sort((a, b) => a - b);
 
+    setSaveLoading(true);
+
+    // Tâche 2.3 — upload image si nouvelle sélectionnée
+    let resolvedImageUrl: string | null = form.image_url;
+
+    if (form.image_file) {
+      const file = form.image_file;
+      const ext = file.type.split('/')[1] ?? 'jpg';
+      const filename = `${crypto.randomUUID()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('promotion-images')
+        .upload(filename, file, { contentType: file.type, upsert: false });
+
+      if (uploadError) {
+        setSaveError(`Échec de l'upload image : ${uploadError.message}`);
+        setSaveLoading(false);
+        return;
+      }
+
+      // Supprimer l'ancienne image si édition avec remplacement
+      if (editingId && form.image_url) {
+        const oldPath = form.image_url.split('/promotion-images/')[1];
+        if (oldPath) {
+          await supabase.storage.from('promotion-images').remove([oldPath]);
+        }
+      }
+
+      resolvedImageUrl = supabase.storage.from('promotion-images').getPublicUrl(filename).data.publicUrl;
+    }
+
     const payload = {
       title: titleTrim,
       description: descTrim || null,
@@ -276,9 +336,9 @@ export default function AdminPromotionsPage() {
       daily_start_time: timeInputToDb(form.daily_start_time),
       daily_end_time: timeInputToDb(form.daily_end_time),
       active: form.active,
+      image_url: resolvedImageUrl,
     };
 
-    setSaveLoading(true);
     try {
       if (editingId) {
         const { error } = await supabase.from('promotions').update(payload).eq('id', editingId);
@@ -290,8 +350,7 @@ export default function AdminPromotionsPage() {
       setShowModal(false);
       await loadAll();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Enregistrement impossible.';
-      setSaveError(msg);
+      setSaveError(supabaseErrorMessage(err, 'save'));
     } finally {
       setSaveLoading(false);
     }
@@ -302,8 +361,8 @@ export default function AdminPromotionsPage() {
       const { error } = await supabase.from('promotions').update({ active: !row.active }).eq('id', row.id);
       if (error) throw error;
       await loadAll();
-    } catch {
-      setListError('Impossible de mettre à jour le statut.');
+    } catch (e: unknown) {
+      setListError(supabaseErrorMessage(e, 'toggle'));
     }
   }
 
@@ -312,9 +371,16 @@ export default function AdminPromotionsPage() {
     try {
       const { error } = await supabase.from('promotions').delete().eq('id', row.id);
       if (error) throw error;
+      // Supprimer l'image associée si présente
+      if (row.image_url) {
+        const oldPath = row.image_url.split('/promotion-images/')[1];
+        if (oldPath) {
+          await supabase.storage.from('promotion-images').remove([oldPath]);
+        }
+      }
       await loadAll();
-    } catch {
-      setListError('Suppression impossible.');
+    } catch (e: unknown) {
+      setListError(supabaseErrorMessage(e, 'delete'));
     }
   }
 
@@ -421,16 +487,24 @@ export default function AdminPromotionsPage() {
 
                     return (
                       <tr key={row.id} className="hover:bg-gray-50">
+                        {/* Tâche 2.4 — vignette image dans la cellule titre */}
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="text-lg shrink-0"
-                              style={{ color: row.accent_color || '#16a34a' }}
-                              aria-hidden
-                            >
-                              {row.emoji || '🎁'}
-                            </span>
-                            <span className="text-sm font-medium text-gray-900">{row.title}</span>
+                          <div className="flex items-center gap-3">
+                            {row.image_url && (
+                              <img
+                                src={row.image_url}
+                                alt=""
+                                className="h-10 w-10 rounded object-cover flex-shrink-0"
+                              />
+                            )}
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {row.emoji} {row.title}
+                              </div>
+                              {row.description && (
+                                <div className="text-xs text-gray-500 line-clamp-1">{row.description}</div>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
@@ -532,6 +606,51 @@ export default function AdminPromotionsPage() {
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
             />
             <p className="mt-0.5 text-xs text-gray-400">{form.description.length}/300</p>
+          </div>
+
+          {/* Tâche 2.2 — upload image optionnel */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Image (optionnel)</label>
+            <p className="mt-0.5 text-xs text-gray-500">
+              JPEG, PNG ou WebP, 5 Mo max. Si tu n&apos;ajoutes pas d&apos;image, la promotion s&apos;affichera avec
+              son emoji et sa couleur.
+            </p>
+
+            {(form.image_url || form.image_file) && (
+              <div className="mt-2 relative inline-block">
+                <img
+                  src={form.image_file ? URL.createObjectURL(form.image_file) : form.image_url!}
+                  alt="Aperçu"
+                  className="h-32 w-auto rounded-md border border-gray-200 object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, image_url: null, image_file: null }))}
+                  className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                  disabled={saveLoading}
+                  aria-label="Retirer l'image"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 5 * 1024 * 1024) {
+                  setSaveError('Image trop volumineuse (5 Mo max).');
+                  return;
+                }
+                setSaveError(null);
+                setForm((f) => ({ ...f, image_file: file }));
+              }}
+              disabled={saveLoading}
+              className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
